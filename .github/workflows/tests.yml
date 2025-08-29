@@ -43,7 +43,30 @@ jobs:
       - name: Generate Application Key
         run: php artisan key:generate
 
+      - name: Create Database
+        run: |
+          mkdir -p database
+          touch database/database.sqlite
+
+      - name: Execute migrations
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+        run: php artisan migrate --force
+
+      - name: Optimize Autoloader
+        run: composer dump-autoload --optimize
+
+      - name: Generate Wayfinder Routes
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+        run: php artisan wayfinder:generate --with-form
+
       - name: Build Assets
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
         run: npm run build
 
       - name: Tests

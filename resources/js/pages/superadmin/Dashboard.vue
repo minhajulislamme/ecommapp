@@ -56,37 +56,37 @@ const breadcrumbs: BreadcrumbItem[] = [
             <div class="grid auto-rows-min gap-4 md:grid-cols-3 lg:grid-cols-6">
                 <StatCard
                     title="Total Users"
-                    :value="stats.total_users"
+                    :value="props.stats.total_users"
                     :icon="Users"
                     color="blue"
                 />
                 <StatCard
                     title="Super Admins"
-                    :value="stats.total_superadmins"
+                    :value="props.stats.total_superadmins"
                     :icon="Shield"
                     color="red"
                 />
                 <StatCard
                     title="Admins"
-                    :value="stats.total_admins"
+                    :value="props.stats.total_admins"
                     :icon="Database"
                     color="purple"
                 />
                 <StatCard
                     title="Regular Users"
-                    :value="stats.total_regular_users"
+                    :value="props.stats.total_regular_users"
                     :icon="Users"
                     color="green"
                 />
                 <StatCard
                     title="Active Users"
-                    :value="stats.active_users"
+                    :value="props.stats.active_users"
                     :icon="UserCheck"
                     color="emerald"
                 />
                 <StatCard
                     title="Inactive Users"
-                    :value="stats.inactive_users"
+                    :value="props.stats.inactive_users"
                     :icon="UserX"
                     color="orange"
                 />
@@ -103,7 +103,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                         View all →
                     </a>
                 </div>
-                <RecentUsersTable :users="recent_users" show-role />
+                <RecentUsersTable :users="props.recent_users" show-role />
             </div>
 
             <!-- Quick Actions -->
@@ -140,7 +140,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                         </div>
                         <div class="flex items-center justify-between">
                             <span class="text-gray-600 dark:text-gray-400">Active Sessions</span>
-                            <span class="text-sm font-medium text-gray-900 dark:text-white">{{ stats.active_users }}</span>
+                            <span class="text-sm font-medium text-gray-900 dark:text-white">{{ props.stats.active_users }}</span>
                         </div>
                     </div>
                 </div>

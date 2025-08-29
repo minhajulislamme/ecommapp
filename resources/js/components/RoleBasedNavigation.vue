@@ -5,7 +5,6 @@ import { computed } from 'vue';
 import { 
     LayoutGrid, 
     Users, 
-    Shield, 
     Settings, 
     Database, 
     UserCheck,
@@ -18,8 +17,6 @@ const user = computed(() => page.props.auth.user);
 
 const navigationItems = computed((): NavItem[] => {
     if (!user.value) return [];
-
-    const baseItems: NavItem[] = [];
 
     // Super Admin Navigation
     if (user.value.role === 'superadmin') {

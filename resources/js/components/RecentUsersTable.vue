@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import { User, Shield, Settings } from 'lucide-vue-next';
 
 interface Props {
@@ -55,7 +54,7 @@ const getRoleColor = (role: string) => {
             <thead>
                 <tr class="border-b border-gray-200 dark:border-gray-700">
                     <th class="pb-3 text-left text-sm font-medium text-gray-500 dark:text-gray-400">User</th>
-                    <th v-if="showRole" class="pb-3 text-left text-sm font-medium text-gray-500 dark:text-gray-400">Role</th>
+                    <th v-if="props.showRole" class="pb-3 text-left text-sm font-medium text-gray-500 dark:text-gray-400">Role</th>
                     <th class="pb-3 text-left text-sm font-medium text-gray-500 dark:text-gray-400">Status</th>
                     <th class="pb-3 text-left text-sm font-medium text-gray-500 dark:text-gray-400">Joined</th>
                 </tr>
@@ -75,7 +74,7 @@ const getRoleColor = (role: string) => {
                             </div>
                         </div>
                     </td>
-                    <td v-if="showRole" class="py-3">
+                    <td v-if="props.showRole" class="py-3">
                         <div class="flex items-center gap-2">
                             <component :is="getRoleIcon(user.role)" class="h-4 w-4" :class="getRoleColor(user.role)" />
                             <span class="text-sm font-medium capitalize" :class="getRoleColor(user.role)">

@@ -14,7 +14,7 @@ import {
     Settings,
     User
 } from 'lucide-vue-next';
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 
 interface User {
     id: number;
@@ -299,8 +299,9 @@ const formatDate = (date: string) => {
                                             : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50',
                                         'relative inline-flex items-center px-4 py-2 text-sm font-medium border',
                                     ]"
-                                    v-html="link.label"
-                                />
+                                >
+                                    {{ link.label }}
+                                </Link>
                             </nav>
                         </div>
                     </div>

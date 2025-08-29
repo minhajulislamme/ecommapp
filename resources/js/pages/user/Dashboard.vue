@@ -35,7 +35,7 @@ const formatDate = (date: string) => {
             <!-- Header -->
             <div class="flex items-center justify-between">
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Welcome back, {{ user.name }}!</h1>
+                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Welcome back, {{ props.user.name }}!</h1>
                     <p class="text-gray-600 dark:text-gray-400">Here's what's happening with your account</p>
                 </div>
                 <div class="flex items-center gap-2">
@@ -50,20 +50,20 @@ const formatDate = (date: string) => {
                 <div class="grid gap-4 md:grid-cols-2">
                     <div>
                         <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Name</label>
-                        <p class="text-lg font-semibold text-gray-900 dark:text-white">{{ user.name }}</p>
+                        <p class="text-lg font-semibold text-gray-900 dark:text-white">{{ props.user.name }}</p>
                     </div>
                     <div>
                         <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Email</label>
-                        <p class="text-lg font-semibold text-gray-900 dark:text-white">{{ user.email }}</p>
+                        <p class="text-lg font-semibold text-gray-900 dark:text-white">{{ props.user.email }}</p>
                     </div>
                     <div>
                         <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Role</label>
-                        <p class="text-lg font-semibold capitalize text-gray-900 dark:text-white">{{ user.role }}</p>
+                        <p class="text-lg font-semibold capitalize text-gray-900 dark:text-white">{{ props.user.role }}</p>
                     </div>
-                    <div v-if="user.email_verified_at">
+                    <div v-if="props.user.email_verified_at">
                         <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Email Verified</label>
                         <p class="text-lg font-semibold text-green-600 dark:text-green-400">
-                            {{ formatDate(user.email_verified_at) }}
+                            {{ formatDate(props.user.email_verified_at) }}
                         </p>
                     </div>
                 </div>
@@ -104,7 +104,7 @@ const formatDate = (date: string) => {
                         <div class="flex items-center justify-between">
                             <span class="text-gray-600 dark:text-gray-400">Member Since</span>
                             <span class="text-sm font-medium text-gray-900 dark:text-white">
-                                {{ formatDate(user.created_at) }}
+                                {{ formatDate(props.user.created_at) }}
                             </span>
                         </div>
                     </div>

@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
-import { Users, UserCheck, UserX, Shield, Settings } from 'lucide-vue-next';
+import { Users, UserCheck, UserX, Settings } from 'lucide-vue-next';
 import StatCard from '@/components/StatCard.vue';
 import RecentUsersTable from '@/components/RecentUsersTable.vue';
 
@@ -53,19 +53,19 @@ const breadcrumbs: BreadcrumbItem[] = [
             <div class="grid auto-rows-min gap-4 md:grid-cols-3">
                 <StatCard
                     title="Total Users"
-                    :value="stats.total_users"
+                    :value="props.stats.total_users"
                     :icon="Users"
                     color="blue"
                 />
                 <StatCard
                     title="Active Users"
-                    :value="stats.active_users"
+                    :value="props.stats.active_users"
                     :icon="UserCheck"
                     color="green"
                 />
                 <StatCard
                     title="Inactive Users"
-                    :value="stats.inactive_users"
+                    :value="props.stats.inactive_users"
                     :icon="UserX"
                     color="orange"
                 />
@@ -82,7 +82,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                         View all →
                     </a>
                 </div>
-                <RecentUsersTable :users="recent_users" />
+                <RecentUsersTable :users="props.recent_users" />
             </div>
 
             <!-- Quick Actions -->
@@ -106,12 +106,12 @@ const breadcrumbs: BreadcrumbItem[] = [
                         <div class="flex items-center justify-between">
                             <span class="text-gray-600 dark:text-gray-400">Active Rate</span>
                             <span class="text-sm font-medium text-green-600 dark:text-green-400">
-                                {{ Math.round((stats.active_users / stats.total_users) * 100) }}%
+                                {{ Math.round((props.stats.active_users / props.stats.total_users) * 100) }}%
                             </span>
                         </div>
                         <div class="flex items-center justify-between">
                             <span class="text-gray-600 dark:text-gray-400">Total Managed</span>
-                            <span class="text-sm font-medium text-gray-900 dark:text-white">{{ stats.total_users }}</span>
+                            <span class="text-sm font-medium text-gray-900 dark:text-white">{{ props.stats.total_users }}</span>
                         </div>
                     </div>
                 </div>

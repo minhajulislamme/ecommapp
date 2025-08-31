@@ -8,6 +8,18 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: '@Minhaz1332'
+          MYSQL_DATABASE: ecommapp
+          MYSQL_USER: ecommapp
+          MYSQL_PASSWORD: '@Minhaz1332'
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -26,6 +38,9 @@ jobs:
 
       - name: Generate Application Key
         run: php artisan key:generate
+
+      - name: Setup Database for Build
+        run: php artisan migrate --force
 
       - name: Install Node
         uses: actions/setup-node@v3

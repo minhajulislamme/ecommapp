@@ -161,6 +161,8 @@ jobs:
             --exclude='storage/framework/cache/*' \
             --exclude='storage/framework/sessions/*' \
             --exclude='storage/framework/views/*' \
+            --exclude='deployment.tar.gz' \
+            --exclude='*.tar.gz' \
             .
 
       - name: Upload Build Artifact

@@ -85,7 +85,7 @@ jobs:
         run: php artisan key:generate
 
       - name: Optimize Autoloader
-        run: composer dump-autoloader --optimize
+        run: composer dump-autoload --optimize
 
       - name: Generate Wayfinder Routes
         run: php artisan wayfinder:generate --with-form

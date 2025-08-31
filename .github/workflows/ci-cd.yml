@@ -206,7 +206,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           password: ${{ secrets.VPS_PASSWORD }}
           source: '.'
-          target: '/var/www/html/ecomappprod/'
+          target: '/var/www/html/ecommapp/'
 
       - name: Run Remote/Artisan Commands
         uses: appleboy/ssh-action@v0.1.6
@@ -215,10 +215,10 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           password: ${{ secrets.VPS_PASSWORD }}
           script: |
-            cd /var/www/html/ecomappprod
-            sudo chown -R www-data:www-data /var/www/html/ecomappprod
-            sudo chmod -R 775 /var/www/html/ecomappprod/storage
-            sudo chmod -R 775 /var/www/html/ecomappprod/bootstrap/cache
+            cd /var/www/html/ecommapp
+            sudo chown -R www-data:www-data /var/www/html/ecommapp
+            sudo chmod -R 775 /var/www/html/ecommapp/storage
+            sudo chmod -R 775 /var/www/html/ecommapp/bootstrap/cache
 
             php artisan migrate --force
             php artisan optimize

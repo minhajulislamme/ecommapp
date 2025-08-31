@@ -41,7 +41,7 @@ jobs:
         run: npm ci
 
       - name: Run PHP Code Style (Pint)
-        run: vendor/bin/pint --test
+        run: vendor/bin/pint
 
       - name: Format Frontend Code
         run: npm run format

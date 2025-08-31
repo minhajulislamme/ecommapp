@@ -8,6 +8,16 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: ecommapp_test
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -16,10 +26,19 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: 8.3
-          extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, dom, filter, gd, iconv, json, mbstring, pdo
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql, dom, filter, gd, iconv, json, mbstring, pdo
 
       - name: Copy Environment File
         run: cp .env.example .env
+
+      - name: Configure Environment for MySQL
+        run: |
+          sed -i 's/DB_CONNECTION=sqlite/DB_CONNECTION=mysql/g' .env
+          sed -i 's/# DB_HOST=127.0.0.1/DB_HOST=127.0.0.1/g' .env
+          sed -i 's/# DB_PORT=3306/DB_PORT=3306/g' .env
+          sed -i 's/# DB_DATABASE=laravel/DB_DATABASE=ecommapp_test/g' .env
+          sed -i 's/# DB_USERNAME=root/DB_USERNAME=root/g' .env
+          sed -i 's/# DB_PASSWORD=/DB_PASSWORD=password/g' .env
 
       - name: Install Composer Dependencies
         run: composer install --optimize-autoloader --no-progress --no-interaction --prefer-dist
@@ -28,10 +47,7 @@ jobs:
         run: php artisan key:generate
 
       - name: Setup Database
-        run: |
-          mkdir -p database
-          touch database/database.sqlite
-          php artisan migrate --force
+        run: php artisan migrate --force
 
       - name: Install Node
         uses: actions/setup-node@v3

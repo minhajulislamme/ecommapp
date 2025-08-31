@@ -9,71 +9,70 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v3
+      - name: Checkout Code
+        uses: actions/checkout@v3
 
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: 8.3
-        extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, dom, filter, gd, iconv, json, mbstring, pdo
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.3
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, dom, filter, gd, iconv, json, mbstring, pdo
 
-    - name: Copy Environment File
-      run: cp .env.example .env
+      - name: Copy Environment File
+        run: cp .env.example .env
 
-    - name: Install Composer Dependencies
-      run: composer install --optimize-autoloader --no-progress --no-interaction --prefer-dist
+      - name: Install Composer Dependencies
+        run: composer install --optimize-autoloader --no-progress --no-interaction --prefer-dist
 
-    - name: Generate Application Key
-      run: php artisan key:generate
+      - name: Generate Application Key
+        run: php artisan key:generate
 
-    - name: Setup Database
-      run: |
-        mkdir -p database
-        touch database/database.sqlite
-        php artisan migrate --force
-
-    - name: Install Node
-      uses: actions/setup-node@v3
-      with:
-        node-version: '22'
-
-    - name: Install NPM Dependencies
-      run: npm install
-
-    - name: Generate Wayfinder Types
-      run: php artisan wayfinder:generate --with-form
-
-    - name: Build NPM Assets
-      run: npm run build
-
-    - name: Synchronize Files To Server
-      uses: appleboy/scp-action@v0.1.1
-      with:
-        host: ${{ secrets.VPS_HOST }}
-        username: ${{ secrets.VPS_USER }}
-        password: ${{ secrets.VPS_PASSWORD }}
-        source: "."
-        target: "/var/www/html/ecomappprod/"
-
-    - name: Run Remote/Artisan Commands
-      uses: appleboy/ssh-action@v0.1.6
-      with:
-        host: ${{ secrets.VPS_HOST }}
-        username: ${{ secrets.VPS_USER }}
-        password: ${{ secrets.VPS_PASSWORD }}
-        script: |
-          cd /var/www/html/ecomappprod
-          sudo chown -R www-data:www-data /var/www/html/ecomappprod
-          sudo chmod -R 775 /var/www/html/ecomappprod/storage
-          sudo chmod -R 775 /var/www/html/ecomappprod/bootstrap/cache
-
-
+      - name: Setup Database
+        run: |
+          mkdir -p database
+          touch database/database.sqlite
           php artisan migrate --force
-          php artisan optimize
-          php artisan config:cache
-          php artisan route:cache
-          php artisan view:cache
-          
-  # php artisan migrate:fresh --seed --force         
-          
+
+      - name: Install Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22'
+
+      - name: Install NPM Dependencies
+        run: npm install
+
+      - name: Generate Wayfinder Types
+        run: php artisan wayfinder:generate --with-form
+
+      - name: Build NPM Assets
+        run: npm run build
+
+      - name: Synchronize Files To Server
+        uses: appleboy/scp-action@v0.1.1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          source: '.'
+          target: '/var/www/html/ecommapp/'
+
+      - name: Run Remote/Artisan Commands
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          script: |
+            cd /var/www/html/ecommapp
+            sudo chown -R www-data:www-data /var/www/html/ecommapp
+            sudo chmod -R 775 /var/www/html/ecommapp/storage
+            sudo chmod -R 775 /var/www/html/ecommapp/bootstrap/cache
+
+
+            php artisan migrate --force
+            php artisan optimize
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+
+  # php artisan migrate:fresh --seed --force

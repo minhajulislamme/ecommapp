@@ -168,9 +168,9 @@ jobs:
                    --exclude='deployment' \
                    . /tmp/deployment/
           
-          # Create the archive from the temporary location
-          cd /tmp/deployment
-          tar -czf deployment.tar.gz .
+          # Create the archive outside the source directory to avoid conflicts
+          cd /tmp
+          tar -czf deployment.tar.gz -C deployment .
           
           # Move the archive back to the workspace
           mv deployment.tar.gz ${{ github.workspace }}/

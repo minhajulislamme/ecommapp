@@ -1,256 +1,63 @@
-name: CI/CD Pipeline
-
+name: Deploy Laravel Application to Production Server
 on:
   push:
     branches:
-      - develop
       - main
-  pull_request:
-    branches:
-      - develop
-      - main
-
-permissions:
-  contents: write
 
 jobs:
-  # Quality checks (linting and formatting)
-  quality:
-    name: Code Quality
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-          tools: composer:v2
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-
-      - name: Install PHP Dependencies
-        run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
-
-      - name: Install Node Dependencies
-        run: npm ci
-
-      - name: Run PHP Code Style (Pint)
-        run: vendor/bin/pint
-
-      - name: Format Frontend Code
-        run: npm run format
-
-      - name: Lint Frontend Code
-        run: npm run lint
-
-  # Test suite
-  test:
-    name: Run Tests
-    runs-on: ubuntu-latest
-    needs: quality
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: 8.4
-          tools: composer:v2
-          coverage: xdebug
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-
-      - name: Install PHP Dependencies
-        run: composer install --no-interaction --prefer-dist --optimize-autoloader
-
-      - name: Install Node Dependencies
-        run: npm ci
-
-      - name: Copy Environment File
-        run: cp .env.example .env
-
-      - name: Create SQLite Database
-        run: touch database/database.sqlite
-
-      - name: Run Database Migrations
-        run: php artisan migrate --force
-
-      - name: Generate Wayfinder Routes
-        run: php artisan wayfinder:generate
-
-      - name: Generate Application Key
-        run: php artisan key:generate
-
-      - name: Optimize Autoloader
-        run: composer dump-autoload --optimize
-
-      - name: Build Frontend Assets
-        run: npm run build
-
-      - name: Run Test Suite
-        run: ./vendor/bin/pest --coverage
-
-  # Build and prepare for deployment
-  build:
-    name: Build Application
-    runs-on: ubuntu-latest
-    needs: [quality, test]
-    if: github.ref == 'refs/heads/main'
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: 8.4
-          tools: composer:v2
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-
-      - name: Install Production PHP Dependencies
-        run: composer install --optimize-autoloader --no-dev --no-progress --no-interaction --prefer-dist
-
-      - name: Install Node Dependencies
-        run: npm ci
-
-      - name: Copy Environment File
-        run: cp .env.example .env
-
-      - name: Create SQLite Database
-        run: touch database/database.sqlite
-
-      - name: Generate Application Key
-        run: php artisan key:generate
-
-      - name: Run Database Migrations
-        run: php artisan migrate --force
-
-      - name: Generate Wayfinder Routes
-        run: php artisan wayfinder:generate
-
-      - name: Build Production Assets
-        run: npm run build
-
-      - name: Create Deployment Archive
-        run: |
-          # Create a clean temporary directory for the deployment files
-          mkdir -p /tmp/deployment
-
-          # Copy application files excluding unnecessary items
-          rsync -av --exclude='.git' \
-                   --exclude='node_modules' \
-                   --exclude='.env*' \
-                   --exclude='tests' \
-                   --exclude='.github' \
-                   --exclude='storage/logs/*' \
-                   --exclude='storage/framework/cache/*' \
-                   --exclude='storage/framework/sessions/*' \
-                   --exclude='storage/framework/views/*' \
-                   --exclude='*.tar.gz' \
-                   --exclude='deployment' \
-                   . /tmp/deployment/
-
-          # Create the archive outside the source directory to avoid conflicts
-          cd /tmp
-          tar -czf deployment.tar.gz -C deployment .
-
-          # Move the archive back to the workspace
-          mv deployment.tar.gz ${{ github.workspace }}/
-
-      - name: Upload Build Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: deployment-package
-          path: deployment.tar.gz
-          retention-days: 7
-
-  # Deploy to production (only on main branch)
   deploy:
-    name: Deploy to Production
     runs-on: ubuntu-latest
-    needs: build
-    if: github.ref == 'refs/heads/main'
-    environment: production
 
     steps:
-      - name: Download Build Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: deployment-package
+    - name: Checkout Code
+      uses: actions/checkout@v3
 
-      - name: Checkout Code
-        uses: actions/checkout@v4
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: 8.3
 
-      - name: Synchronize Files To Server
-        uses: appleboy/scp-action@v0.1.1
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          password: ${{ secrets.VPS_PASSWORD }}
-          source: '.'
-          target: '/var/www/html/ecommapp/'
+    - name: Install Composer Dependencies
+      run: composer install --optimize-autoloader --no-dev --no-progress --no-interaction --prefer-dist
 
-      - name: Run Remote/Artisan Commands
-        uses: appleboy/ssh-action@v0.1.6
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          password: ${{ secrets.VPS_PASSWORD }}
-          script: |
-            cd /var/www/html/ecommapp
-            sudo chown -R www-data:www-data /var/www/html/ecommapp
-            sudo chmod -R 775 /var/www/html/ecommapp/storage
-            sudo chmod -R 775 /var/www/html/ecommapp/bootstrap/cache
+    - name: Install Node
+      uses: actions/setup-node@v3
+      with:
+        node-version: '22'
 
-            php artisan migrate --force
-            php artisan optimize
-            php artisan config:cache
-            php artisan route:cache
-            php artisan view:cache
+    - name: Install NPM Dependencies
+      run: npm install
 
-            # php artisan migrate:fresh --seed --force
+    - name: Build NPM Assets
+      run: npm run build
 
-  # Notification job (runs after all jobs complete)
-  notify:
-    name: Notify Results
-    runs-on: ubuntu-latest
-    needs: [quality, test, build, deploy]
-    if: always()
+    - name: Synchronize Files To Server
+      uses: appleboy/scp-action@v0.1.1
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USER }}
+        password: ${{ secrets.VPS_PASSWORD }}
+        source: "."
+        target: "/var/www/html/ecomappprod/"
 
-    steps:
-      - name: Notify Success
-        if: needs.quality.result == 'success' && needs.test.result == 'success'
-        run: |
-          echo "✅ Pipeline completed successfully!"
-          echo "📊 Quality checks: ${{ needs.quality.result }}"
-          echo "🧪 Tests: ${{ needs.test.result }}"
-          echo "🏗️ Build: ${{ needs.build.result }}"
-          echo "🚀 Deploy: ${{ needs.deploy.result }}"
+    - name: Run Remote/Artisan Commands
+      uses: appleboy/ssh-action@v0.1.6
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USER }}
+        password: ${{ secrets.VPS_PASSWORD }}
+        script: |
+          cd /var/www/html/ecomappprod
+          sudo chown -R www-data:www-data /var/www/html/ecomappprod
+          sudo chmod -R 775 /var/www/html/ecomappprod/storage
+          sudo chmod -R 775 /var/www/html/ecomappprod/bootstrap/cache
 
-      - name: Notify Failure
-        if: needs.quality.result == 'failure' || needs.test.result == 'failure' || needs.build.result == 'failure' || needs.deploy.result == 'failure'
-        run: |
-          echo "❌ Pipeline failed!"
-          echo "📊 Quality checks: ${{ needs.quality.result }}"
-          echo "🧪 Tests: ${{ needs.test.result }}"
-          echo "🏗️ Build: ${{ needs.build.result }}"
-          echo "🚀 Deploy: ${{ needs.deploy.result }}"
-          exit 1
+
+          php artisan migrate --force
+          php artisan optimize
+          php artisan config:cache
+          php artisan route:cache
+          php artisan view:cache
+          
+  # php artisan migrate:fresh --seed --force         
+          

@@ -1,4 +1,4 @@
-name: Deploy Laravel Application to Production Server
+name: CI/CD Pipeline
 on:
   push:
     branches:

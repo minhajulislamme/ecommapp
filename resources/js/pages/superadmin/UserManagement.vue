@@ -477,7 +477,7 @@ const exportToExcel = async () => {
     
     isExportingExcel.value = true;
     try {
-        const XLSX = await import('xlsx');
+        const ExcelJS = await import('exceljs');
         
         // Get users to export
         const usersToExport = getUsersToExport();
@@ -496,21 +496,35 @@ const exportToExcel = async () => {
         }));
         
         // Create workbook and worksheet
-        const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.json_to_sheet(excelData);
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Users');
         
-        // Auto-size columns
-        const colWidths = Object.keys(excelData[0] || {}).map(key => {
-            const maxLength = Math.max(
-                key.length,
-                ...excelData.map(row => String(row[key as keyof typeof row] || '').length)
-            );
-            return { wch: Math.min(maxLength + 2, 50) }; // Max width of 50
+        // Define columns
+        worksheet.columns = Object.keys(excelData[0] || {}).map(key => ({
+            header: key,
+            key: key,
+            width: Math.min(Math.max(key.length + 2, 10), 50) // Min width 10, max 50
+        }));
+        
+        // Add data rows
+        excelData.forEach(row => {
+            worksheet.addRow(row);
         });
-        ws['!cols'] = colWidths;
         
-        // Add worksheet to workbook
-        XLSX.utils.book_append_sheet(wb, ws, 'Users');
+        // Auto-resize columns based on content
+        worksheet.columns.forEach(column => {
+            let maxLength = 0;
+            worksheet.eachRow({ includeEmpty: false }, (row) => {
+                const columnLetter = column.letter;
+                if (columnLetter) {
+                    const cellValue = row.getCell(columnLetter).value;
+                    if (cellValue !== null && cellValue !== undefined) {
+                        maxLength = Math.max(maxLength, cellValue.toString().length);
+                    }
+                }
+            });
+            column.width = Math.min(Math.max(maxLength + 2, 10), 50);
+        });
         
         // Add summary sheet with stats and filter info
         const summaryData = [
@@ -552,10 +566,20 @@ const exportToExcel = async () => {
             ['Inactive Users', props.stats.inactive_users]
         );
         
-        const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
-        XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
+        const summaryWorksheet = workbook.addWorksheet('Summary');
         
-        // Save file using XLSX.writeFile (no need for file-saver)
+        // Add summary data as rows
+        summaryData.forEach(row => {
+            summaryWorksheet.addRow(row);
+        });
+        
+        // Format the summary sheet
+        summaryWorksheet.columns = [
+            { width: 25 },
+            { width: 30 }
+        ];
+        
+        // Generate filename
         let fileName = `users-export-${new Date().toISOString().split('T')[0]}`;
         
         // Add filter info to filename
@@ -572,7 +596,15 @@ const exportToExcel = async () => {
         }
         fileName += '.xlsx';
         
-        XLSX.writeFile(wb, fileName);
+        // Write file and trigger download
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        link.click();
+        window.URL.revokeObjectURL(url);
         
         console.log('Excel file downloaded successfully:', fileName);
     } catch (error) {

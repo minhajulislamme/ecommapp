@@ -153,7 +153,7 @@ jobs:
         run: |
           # Create a clean temporary directory for the deployment files
           mkdir -p /tmp/deployment
-          
+
           # Copy application files excluding unnecessary items
           rsync -av --exclude='.git' \
                    --exclude='node_modules' \
@@ -167,11 +167,11 @@ jobs:
                    --exclude='*.tar.gz' \
                    --exclude='deployment' \
                    . /tmp/deployment/
-          
+
           # Create the archive outside the source directory to avoid conflicts
           cd /tmp
           tar -czf deployment.tar.gz -C deployment .
-          
+
           # Move the archive back to the workspace
           mv deployment.tar.gz ${{ github.workspace }}/
 
@@ -196,60 +196,37 @@ jobs:
         with:
           name: deployment-package
 
-      - name: Deploy to Production Server
-        run: |
-          echo "🚀 Deployment step would run here"
-          echo "📦 Build artifact: deployment.tar.gz"
-          echo "🎯 Target: Production Server"
-          echo ""
-          echo "Next steps to implement:"
-          echo "1. Upload files to production server"
-          echo "2. Run database migrations"
-          echo "3. Clear and rebuild caches"
-          echo "4. Restart services"
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      # Uncomment and configure when ready for actual deployment
-      # - name: Synchronize Files To Server
-      #   uses: appleboy/scp-action@v0.1.7
-      #   with:
-      #     host: ${{ secrets.VPS_HOST }}
-      #     username: ${{ secrets.VPS_USER }}
-      #     key: ${{ secrets.VPS_SSH_KEY }}
-      #     source: "deployment.tar.gz"
-      #     target: "/tmp/"
+      - name: Synchronize Files To Server
+        uses: appleboy/scp-action@v0.1.1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          source: '.'
+          target: '/var/www/html/ecomappprod/'
 
-      # - name: Deploy Application
-      #   uses: appleboy/ssh-action@v1.0.3
-      #   with:
-      #     host: ${{ secrets.VPS_HOST }}
-      #     username: ${{ secrets.VPS_USER }}
-      #     key: ${{ secrets.VPS_SSH_KEY }}
-      #     script: |
-      #       cd /var/www/html/ecommapp
-      #
-      #       # Create backup
-      #       sudo tar -czf backup-$(date +%Y%m%d-%H%M%S).tar.gz . || true
-      #
-      #       # Extract new files
-      #       sudo tar -xzf /tmp/deployment.tar.gz
-      #
-      #       # Set permissions
-      #       sudo chown -R www-data:www-data /var/www/html/ecommapp
-      #       sudo chmod -R 755 /var/www/html/ecommapp
-      #       sudo chmod -R 775 /var/www/html/ecommapp/storage
-      #       sudo chmod -R 775 /var/www/html/ecommapp/bootstrap/cache
-      #
-      #       # Run Laravel commands
-      #       php artisan down --retry=60
-      #       php artisan migrate --force
-      #       php artisan config:cache
-      #       php artisan route:cache
-      #       php artisan view:cache
-      #       php artisan optimize
-      #       php artisan up
-      #
-      #       # Clean up
-      #       rm /tmp/deployment.tar.gz
+      - name: Run Remote/Artisan Commands
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          script: |
+            cd /var/www/html/ecomappprod
+            sudo chown -R www-data:www-data /var/www/html/ecomappprod
+            sudo chmod -R 775 /var/www/html/ecomappprod/storage
+            sudo chmod -R 775 /var/www/html/ecomappprod/bootstrap/cache
+
+            php artisan migrate --force
+            php artisan optimize
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+
+            # php artisan migrate:fresh --seed --force
 
   # Notification job (runs after all jobs complete)
   notify:

@@ -8,16 +8,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: password
-          MYSQL_DATABASE: ecommapp_test
-        ports:
-          - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -34,11 +24,11 @@ jobs:
       - name: Configure Environment for MySQL
         run: |
           sed -i 's/DB_CONNECTION=sqlite/DB_CONNECTION=mysql/g' .env
-          sed -i 's/# DB_HOST=127.0.0.1/DB_HOST=127.0.0.1/g' .env
-          sed -i 's/# DB_PORT=3306/DB_PORT=3306/g' .env
-          sed -i 's/# DB_DATABASE=laravel/DB_DATABASE=ecommapp_test/g' .env
-          sed -i 's/# DB_USERNAME=root/DB_USERNAME=root/g' .env
-          sed -i 's/# DB_PASSWORD=/DB_PASSWORD=password/g' .env
+          sed -i 's/# DB_HOST=127.0.0.1/DB_HOST=${{ secrets.DB_HOST }}/g' .env
+          sed -i 's/# DB_PORT=3306/DB_PORT=${{ secrets.DB_PORT }}/g' .env
+          sed -i 's/# DB_DATABASE=laravel/DB_DATABASE=${{ secrets.DB_DATABASE }}/g' .env
+          sed -i 's/# DB_USERNAME=root/DB_USERNAME=${{ secrets.DB_USERNAME }}/g' .env
+          sed -i 's/# DB_PASSWORD=/DB_PASSWORD=${{ secrets.DB_PASSWORD }}/g' .env
 
       - name: Install Composer Dependencies
         run: composer install --optimize-autoloader --no-progress --no-interaction --prefer-dist

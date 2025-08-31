@@ -21,23 +21,11 @@ jobs:
       - name: Copy Environment File
         run: cp .env.example .env
 
-      - name: Configure Environment for MySQL
-        run: |
-          sed -i 's/DB_CONNECTION=sqlite/DB_CONNECTION=mysql/g' .env
-          sed -i 's/# DB_HOST=127.0.0.1/DB_HOST=${{ secrets.DB_HOST }}/g' .env
-          sed -i 's/# DB_PORT=3306/DB_PORT=${{ secrets.DB_PORT }}/g' .env
-          sed -i 's/# DB_DATABASE=laravel/DB_DATABASE=${{ secrets.DB_DATABASE }}/g' .env
-          sed -i 's/# DB_USERNAME=root/DB_USERNAME=${{ secrets.DB_USERNAME }}/g' .env
-          sed -i 's/# DB_PASSWORD=/DB_PASSWORD=${{ secrets.DB_PASSWORD }}/g' .env
-
       - name: Install Composer Dependencies
         run: composer install --optimize-autoloader --no-progress --no-interaction --prefer-dist
 
       - name: Generate Application Key
         run: php artisan key:generate
-
-      - name: Setup Database
-        run: php artisan migrate --force
 
       - name: Install Node
         uses: actions/setup-node@v3

@@ -151,19 +151,29 @@ jobs:
 
       - name: Create Deployment Archive
         run: |
-          tar -czf deployment.tar.gz \
-            --exclude='.git' \
-            --exclude='node_modules' \
-            --exclude='.env*' \
-            --exclude='tests' \
-            --exclude='.github' \
-            --exclude='storage/logs/*' \
-            --exclude='storage/framework/cache/*' \
-            --exclude='storage/framework/sessions/*' \
-            --exclude='storage/framework/views/*' \
-            --exclude='deployment.tar.gz' \
-            --exclude='*.tar.gz' \
-            .
+          # Create a clean temporary directory for the deployment files
+          mkdir -p /tmp/deployment
+          
+          # Copy application files excluding unnecessary items
+          rsync -av --exclude='.git' \
+                   --exclude='node_modules' \
+                   --exclude='.env*' \
+                   --exclude='tests' \
+                   --exclude='.github' \
+                   --exclude='storage/logs/*' \
+                   --exclude='storage/framework/cache/*' \
+                   --exclude='storage/framework/sessions/*' \
+                   --exclude='storage/framework/views/*' \
+                   --exclude='*.tar.gz' \
+                   --exclude='deployment' \
+                   . /tmp/deployment/
+          
+          # Create the archive from the temporary location
+          cd /tmp/deployment
+          tar -czf deployment.tar.gz .
+          
+          # Move the archive back to the workspace
+          mv deployment.tar.gz ${{ github.workspace }}/
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4

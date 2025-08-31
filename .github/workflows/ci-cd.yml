@@ -18,7 +18,7 @@ jobs:
           MYSQL_PASSWORD: '@Minhaz1332'
         ports:
           - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+        options: --health-cmd="mysqladmin ping -h localhost -u ecommapp -p@Minhaz1332" --health-interval=10s --health-timeout=5s --health-retries=5
 
     steps:
       - name: Checkout Code
@@ -33,11 +33,26 @@ jobs:
       - name: Copy Environment File
         run: cp .env.example .env
 
+      - name: Configure Database for CI
+        run: |
+          sed -i 's/DB_HOST=127.0.0.1/DB_HOST=127.0.0.1/g' .env
+          sed -i 's/DB_DATABASE=ecommapp/DB_DATABASE=ecommapp/g' .env
+          sed -i 's/DB_USERNAME=ecommapp/DB_USERNAME=ecommapp/g' .env
+          sed -i 's/DB_PASSWORD=@Minhaz1332/DB_PASSWORD=@Minhaz1332/g' .env
+
       - name: Install Composer Dependencies
         run: composer install --optimize-autoloader --no-progress --no-interaction --prefer-dist
 
       - name: Generate Application Key
         run: php artisan key:generate
+
+      - name: Wait for MySQL to be ready
+        run: |
+          until mysqladmin ping -h127.0.0.1 -uecommapp -p'@Minhaz1332' --silent; do
+            echo 'Waiting for MySQL...'
+            sleep 2
+          done
+          echo 'MySQL is ready!'
 
       - name: Setup Database for Build
         run: php artisan migrate --force

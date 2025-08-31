@@ -8,6 +8,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Session;
+
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -20,7 +22,7 @@ class AuthenticatedSessionController extends Controller
     {
         return Inertia::render('auth/Login', [
             'canResetPassword' => Route::has('password.request'),
-            'status' => $request->session()->get('status'),
+            'status' => Session::get('status'),
         ]);
     }
 
@@ -31,7 +33,7 @@ class AuthenticatedSessionController extends Controller
     {
         $request->authenticate();
 
-        $request->session()->regenerate();
+        Session::regenerate();
 
         // Redirect based on user role
         $user = Auth::user();
@@ -59,8 +61,8 @@ class AuthenticatedSessionController extends Controller
     {
         Auth::guard('web')->logout();
 
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        Session::invalidate();
+        Session::regenerateToken();
 
         return redirect('/');
     }

@@ -32,7 +32,7 @@
                 </div>
 
                 <!-- Desktop Actions -->
-                <div class="hidden md:flex items-center space-x-4">
+                <div class="hidden md:flex items-center space-x-3">
                     <!-- Search -->
                     <div class="relative group">
                         <input 
@@ -63,6 +63,17 @@
                             {{ cartItemCount }}
                         </span>
                     </button>
+
+                    <!-- Dark Mode Toggle - Always visible on desktop -->
+                    <div class="flex items-center">
+                        <button 
+                            @click="toggleDarkMode"
+                            class="p-2.5 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 group border border-gray-200 dark:border-gray-700"
+                            title="Toggle theme"
+                        >
+                            <Icon :name="isDarkMode ? 'sun' : 'moon'" class="w-5 h-5 group-hover:scale-110 transition-transform" />
+                        </button>
+                    </div>
 
                     <!-- Authentication Section -->
                     <div v-if="isAuthenticated" class="relative" ref="userMenuRef">
@@ -122,7 +133,7 @@
                             :href="login.url()"
                             class="inline-flex items-center px-4 py-2.5 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 hover:scale-105"
                         >
-                            <Icon name="shield-check" class="w-4 h-4 mr-2" />
+                            <Icon name="log-in" class="w-4 h-4 mr-2" />
                             Log in
                         </Link>
                         <Link
@@ -133,14 +144,6 @@
                             Register
                         </Link>
                     </div>
-
-                    <!-- Dark Mode Toggle -->
-                    <button 
-                        @click="toggleDarkMode"
-                        class="p-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-                    >
-                        <Icon :name="isDarkMode ? 'sun' : 'moon'" class="w-5 h-5" />
-                    </button>
                 </div>
 
                 <!-- Mobile Menu Button and Theme Toggle -->
@@ -148,19 +151,19 @@
                     <!-- Mobile Dark Mode Toggle -->
                     <button 
                         @click="toggleDarkMode"
-                        class="p-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                        class="p-2.5 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 group"
                         title="Toggle theme"
                     >
-                        <Icon :name="isDarkMode ? 'sun' : 'moon'" class="w-5 h-5" />
+                        <Icon :name="isDarkMode ? 'sun' : 'moon'" class="w-5 h-5 group-hover:scale-110 transition-transform" />
                     </button>
                     
                     <!-- Mobile Menu Button -->
                     <button 
                         @click="toggleMobileMenu"
-                        class="p-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                        class="p-2.5 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 group"
                         title="Menu"
                     >
-                        <Icon :name="showMobileMenu ? 'x' : 'menu'" class="w-6 h-6" />
+                        <Icon :name="showMobileMenu ? 'x' : 'menu'" class="w-6 h-6 group-hover:scale-110 transition-transform" />
                     </button>
                 </div>
             </div>
@@ -244,7 +247,7 @@
                             @click="showMobileMenu = false"
                             class="flex items-center space-x-3 px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
                         >
-                            <Icon name="shield-check" class="w-5 h-5" />
+                            <Icon name="log-in" class="w-5 h-5" />
                             <span class="font-medium">Log in</span>
                         </Link>
                         <Link
@@ -312,7 +315,6 @@ const navigationItems = [
     { name: 'Home', href: home.url(), icon: 'home' },
     { name: 'Products', href: '/products', icon: 'shopping-bag' },
     { name: 'Categories', href: '/categories', icon: 'grid' },
-    { name: 'Deals', href: '/deals', icon: 'tag' },
     { name: 'About', href: '/about', icon: 'info' },
     { name: 'Contact', href: '/contact', icon: 'mail' }
 ];

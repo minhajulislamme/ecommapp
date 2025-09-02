@@ -16,10 +16,11 @@ import {
     UserPlus, 
     UserMinus, 
     LogIn, 
-    LogOut 
+    LogOut,
+    Smartphone
 } from 'lucide-vue-next';
 
-const { toast } = useToast();
+const { toast, isMobile, clearAllToasts } = useToast();
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -43,6 +44,34 @@ const showWarningToast = () => {
 
 const showInfoToast = () => {
     toast.info('Here is some useful information for you.', 'Information');
+};
+
+// Mobile-specific toast demonstrations
+const showMobileLongMessage = () => {
+    toast.success('This is a longer notification message designed to test how well the mobile interface handles text wrapping and readability on smaller screens.', 'Mobile Test');
+};
+
+const showMobileError = () => {
+    toast.error('User "Minhaz" has been deactivated successfully! This action cannot be undone.', 'Account Deactivated');
+};
+
+const showMobileWarning = () => {
+    toast.warning('Your session will expire in 5 minutes. Please save your work.', 'Session Warning');
+};
+
+const testMobileTouch = () => {
+    toast.info('Tap the X button to test mobile touch targets', 'Touch Test');
+};
+
+const clearAll = () => {
+    clearAllToasts();
+};
+
+const showMultipleToasts = () => {
+    toast.success('First notification', 'Success 1');
+    setTimeout(() => toast.warning('Second notification', 'Warning 2'), 500);
+    setTimeout(() => toast.info('Third notification', 'Info 3'), 1000);
+    setTimeout(() => toast.error('Fourth notification', 'Error 4'), 1500);
 };
 
 // User operation demonstrations
@@ -155,6 +184,44 @@ const simulateServerError = () => {
                     <Button @click="showInfoToast" variant="secondary" class="flex items-center gap-2">
                         <Info class="h-4 w-4" />
                         Info Toast
+                    </Button>
+                </CardContent>
+            </Card>
+
+            <!-- Mobile Optimization Tests -->
+            <Card>
+                <CardHeader>
+                    <CardTitle class="flex items-center gap-2">
+                        <Smartphone class="h-5 w-5" />
+                        Mobile Optimization Tests
+                        <span v-if="isMobile()" class="ml-2 px-2 py-1 text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded">
+                            Mobile Detected
+                        </span>
+                    </CardTitle>
+                    <CardDescription>
+                        Test mobile-specific notification features including responsive design, touch targets, and duration optimization
+                    </CardDescription>
+                </CardHeader>
+                <CardContent class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <Button @click="showMobileLongMessage" class="flex items-center gap-2">
+                        <Smartphone class="h-4 w-4" />
+                        Long Message Test
+                    </Button>
+                    <Button @click="showMobileError" variant="destructive" class="flex items-center gap-2">
+                        <AlertCircle class="h-4 w-4" />
+                        Mobile Error Test
+                    </Button>
+                    <Button @click="testMobileTouch" variant="outline" class="flex items-center gap-2">
+                        <CheckCircle class="h-4 w-4" />
+                        Touch Target Test
+                    </Button>
+                    <Button @click="showMultipleToasts" variant="secondary" class="flex items-center gap-2">
+                        <Bell class="h-4 w-4" />
+                        Multiple Toasts
+                    </Button>
+                    <Button @click="clearAll" variant="outline" class="flex items-center gap-2 text-red-600 hover:text-red-700">
+                        <AlertTriangle class="h-4 w-4" />
+                        Clear All
                     </Button>
                 </CardContent>
             </Card>
@@ -290,7 +357,10 @@ const { toast } = useToast();
 toast.success('Success message', 'Success Title');
 toast.error('Error message', 'Error Title');
 toast.warning('Warning message', 'Warning Title');
-toast.info('Info message', 'Info Title');</code></pre>
+toast.info('Info message', 'Info Title');
+
+// Custom duration (optional)
+toast.success('Custom message', 'Title', 3000);</code></pre>
 
                     <h3>Server-Side Usage (Laravel):</h3>
                     <pre class="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg"><code>// In your controllers
@@ -305,6 +375,16 @@ return redirect()->back()
 
 return redirect()->back()
     ->with('info', 'Information message!');</code></pre>
+
+                    <h3>Mobile Optimizations:</h3>
+                    <ul>
+                        <li><strong>Responsive Positioning:</strong> Toasts automatically adjust position for mobile screens</li>
+                        <li><strong>Touch-Friendly Targets:</strong> Larger close buttons for better touch interaction</li>
+                        <li><strong>Smart Duration:</strong> Longer duration on mobile for better readability</li>
+                        <li><strong>Safe Area Support:</strong> Respects device safe areas (notches, home indicators)</li>
+                        <li><strong>Enhanced Visibility:</strong> Better contrast and backdrop blur for mobile</li>
+                        <li><strong>Optimized Animations:</strong> Smooth animations optimized for mobile performance</li>
+                    </ul>
 
                     <h3>Automatic Flash Message Handling:</h3>
                     <p>The application automatically converts Laravel flash messages to toast notifications. No additional frontend code needed!</p>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { SidebarProvider } from '@/components/ui/sidebar';
+import ToastContainer from '@/components/ui/ToastContainer.vue';
 import { usePage } from '@inertiajs/vue3';
 
 interface Props {
@@ -14,8 +15,10 @@ const isOpen = usePage().props.sidebarOpen;
 <template>
     <div v-if="variant === 'header'" class="flex min-h-screen w-full flex-col">
         <slot />
+        <ToastContainer />
     </div>
     <SidebarProvider v-else :default-open="isOpen">
         <slot />
+        <ToastContainer />
     </SidebarProvider>
 </template>

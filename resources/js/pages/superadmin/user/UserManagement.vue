@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/vue3';
-import { Users, UserCheck, UserX, Shield, Database, Search, Filter, Plus, Edit, Trash2, Eye, ChevronLeft, ChevronRight, Download, FileText, FileSpreadsheet } from 'lucide-vue-next';
+import { Head, router, usePage } from '@inertiajs/vue3';
+import { Users, UserCheck, UserX, Shield, Database, Search, Filter, Plus, Edit, Trash2, Eye, ChevronLeft, ChevronRight, Download, FileText, FileSpreadsheet, AlertTriangle } from 'lucide-vue-next';
 import StatCard from '@/components/StatCard.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { ref, computed, watch } from 'vue';
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
+import { ref, computed, watch, onMounted } from 'vue';
+import { useToast } from '@/composables/useToast';
 
 interface User {
     id: number;
@@ -29,9 +31,15 @@ interface Props {
         inactive_users: number;
     };
     users: User[];
+    flash?: {
+        success?: string;
+        error?: string;
+    };
 }
 
 const props = defineProps<Props>();
+const { toast } = useToast();
+const page = usePage();
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -52,6 +60,13 @@ const itemsPerPage = 15;
 // Loading states for exports
 const isExportingPDF = ref(false);
 const isExportingExcel = ref(false);
+const isDeletingBulk = ref(false);
+const deletingUserId = ref<number | null>(null);
+
+// Confirmation dialog states
+const showDeleteDialog = ref(false);
+const showBulkDeleteDialog = ref(false);
+const userToDelete = ref<User | null>(null);
 
 // Selection state
 const selectedUsers = ref<number[]>([]);
@@ -144,6 +159,84 @@ const toggleUserSelection = (userId: number) => {
 const isUserSelected = (userId: number) => {
     return selectedUsers.value.includes(userId);
 };
+
+// Delete functions
+const deleteUser = async (user: User) => {
+    userToDelete.value = user;
+    showDeleteDialog.value = true;
+};
+
+const confirmDeleteUser = async () => {
+    if (!userToDelete.value) return;
+
+    const user = userToDelete.value;
+    deletingUserId.value = user.id;
+    
+    try {
+        router.delete(`/superadmin/users/${user.id}`, {
+            onSuccess: () => {
+                toast.success(`User '${user.name}' has been deleted successfully!`);
+            },
+            onError: () => {
+                toast.error('Failed to delete user. Please try again.');
+            },
+            onFinish: () => {
+                deletingUserId.value = null;
+                userToDelete.value = null;
+            }
+        });
+    } catch (error) {
+        deletingUserId.value = null;
+        userToDelete.value = null;
+        toast.error('An error occurred while deleting the user.');
+    }
+};
+
+const bulkDeleteUsers = async () => {
+    if (selectedUsers.value.length === 0) {
+        toast.warning('Please select users to delete.');
+        return;
+    }
+    showBulkDeleteDialog.value = true;
+};
+
+const confirmBulkDeleteUsers = async () => {
+    const count = selectedUsers.value.length;
+    isDeletingBulk.value = true;
+    
+    try {
+        router.delete('/superadmin/users', {
+            data: {
+                user_ids: selectedUsers.value
+            },
+            onSuccess: () => {
+                toast.success(`${count} user(s) have been deleted successfully!`);
+                selectedUsers.value = [];
+                selectAll.value = false;
+            },
+            onError: () => {
+                toast.error('Failed to delete users. Please try again.');
+            },
+            onFinish: () => {
+                isDeletingBulk.value = false;
+            }
+        });
+    } catch (error) {
+        isDeletingBulk.value = false;
+        toast.error('An error occurred while deleting the users.');
+    }
+};
+
+// Check for flash messages on mount
+onMounted(() => {
+    const flashData = page.props.flash as any;
+    if (flashData?.success) {
+        toast.success(flashData.success);
+    }
+    if (flashData?.error) {
+        toast.error(flashData.error);
+    }
+});
 
 // Get users to export (selected or all filtered)
 const getUsersToExport = () => {
@@ -667,7 +760,7 @@ const exportToExcel = async () => {
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
-                    <Button class="flex items-center gap-2">
+                    <Button class="flex items-center gap-2" @click="router.visit('/superadmin/users/create')">
                         <Plus class="h-4 w-4" />
                         Add New User
                     </Button>
@@ -804,10 +897,20 @@ const exportToExcel = async () => {
                     
                     <div v-if="selectedUsers.length > 0" class="flex items-center gap-2">
                         <Button 
+                            variant="destructive"
+                            size="sm" 
+                            @click="bulkDeleteUsers"
+                            :disabled="isDeletingBulk"
+                            class="flex items-center gap-2"
+                        >
+                            <Trash2 class="h-4 w-4" />
+                            {{ isDeletingBulk ? 'Deleting...' : `Delete Selected (${selectedUsers.length})` }}
+                        </Button>
+                        <Button 
                             variant="outline" 
                             size="sm" 
                             @click="selectedUsers = []"
-                            class="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 w-full sm:w-auto justify-center"
+                            class="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
                         >
                             Clear Selection
                         </Button>
@@ -921,14 +1024,31 @@ const exportToExcel = async () => {
                                 <!-- Actions -->
                                 <td class="py-4">
                                     <div class="flex items-center gap-2">
-                                        <Button variant="ghost" size="sm" class="h-8 w-8 p-0">
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            class="h-8 w-8 p-0"
+                                            @click="router.visit(`/superadmin/users/${user.id}`)"
+                                        >
                                             <Eye class="h-4 w-4" />
                                         </Button>
-                                        <Button variant="ghost" size="sm" class="h-8 w-8 p-0">
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            class="h-8 w-8 p-0"
+                                            @click="router.visit(`/superadmin/users/${user.id}/edit`)"
+                                        >
                                             <Edit class="h-4 w-4" />
                                         </Button>
-                                        <Button variant="ghost" size="sm" class="h-8 w-8 p-0 text-red-600 hover:text-red-700">
-                                            <Trash2 class="h-4 w-4" />
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            class="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                                            @click="deleteUser(user)"
+                                            :disabled="deletingUserId === user.id"
+                                        >
+                                            <Trash2 v-if="deletingUserId !== user.id" class="h-4 w-4" />
+                                            <div v-else class="h-4 w-4 animate-spin rounded-full border-2 border-red-600 border-t-transparent"></div>
                                         </Button>
                                     </div>
                                 </td>
@@ -1022,17 +1142,34 @@ const exportToExcel = async () => {
                         
                         <!-- Actions -->
                         <div class="flex items-center gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-                            <Button variant="ghost" size="sm" class="flex-1 justify-center">
+                            <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                class="flex-1 justify-center"
+                                @click="router.visit(`/superadmin/users/${user.id}`)"
+                            >
                                 <Eye class="h-4 w-4 mr-2" />
                                 View
                             </Button>
-                            <Button variant="ghost" size="sm" class="flex-1 justify-center">
+                            <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                class="flex-1 justify-center"
+                                @click="router.visit(`/superadmin/users/${user.id}/edit`)"
+                            >
                                 <Edit class="h-4 w-4 mr-2" />
                                 Edit
                             </Button>
-                            <Button variant="ghost" size="sm" class="flex-1 justify-center text-red-600 hover:text-red-700">
-                                <Trash2 class="h-4 w-4 mr-2" />
-                                Delete
+                            <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                class="flex-1 justify-center text-red-600 hover:text-red-700"
+                                @click="deleteUser(user)"
+                                :disabled="deletingUserId === user.id"
+                            >
+                                <Trash2 v-if="deletingUserId !== user.id" class="h-4 w-4 mr-2" />
+                                <div v-else class="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-red-600 border-t-transparent"></div>
+                                {{ deletingUserId === user.id ? 'Deleting...' : 'Delete' }}
                             </Button>
                         </div>
                     </div>
@@ -1099,4 +1236,28 @@ const exportToExcel = async () => {
             </div>
         </div>
     </AppLayout>
+
+    <!-- Delete Confirmation Dialogs -->
+    <ConfirmDialog
+        :is-open="showDeleteDialog"
+        :title="`Delete ${userToDelete?.name}?`"
+        :description="`Are you sure you want to delete ${userToDelete?.name}? This user will be permanently removed from the system and this action cannot be undone.`"
+        confirm-text="Delete User"
+        cancel-text="Cancel"
+        variant="destructive"
+        @confirm="confirmDeleteUser"
+        @cancel="userToDelete = null"
+        @close="showDeleteDialog = false"
+    />
+
+    <ConfirmDialog
+        :is-open="showBulkDeleteDialog"
+        :title="`Delete ${selectedUsers.length} User${selectedUsers.length > 1 ? 's' : ''}?`"
+        :description="`Are you sure you want to delete ${selectedUsers.length} user${selectedUsers.length > 1 ? 's' : ''}? ${selectedUsers.length > 1 ? 'These users' : 'This user'} will be permanently removed from the system and this action cannot be undone.`"
+        :confirm-text="`Delete ${selectedUsers.length} User${selectedUsers.length > 1 ? 's' : ''}`"
+        cancel-text="Cancel"
+        variant="destructive"
+        @confirm="confirmBulkDeleteUsers"
+        @close="showBulkDeleteDialog = false"
+    />
 </template>

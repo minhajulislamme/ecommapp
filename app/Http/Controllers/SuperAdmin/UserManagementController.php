@@ -4,6 +4,7 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\ImageUploadService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Hash;
@@ -15,6 +16,12 @@ use Inertia\Response;
 
 class UserManagementController extends Controller
 {
+    protected $imageUploadService;
+
+    public function __construct(ImageUploadService $imageUploadService)
+    {
+        $this->imageUploadService = $imageUploadService;
+    }
 
     public function index(): Response
     {
@@ -55,16 +62,29 @@ class UserManagementController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'role' => ['required', 'string', Rule::in(['user', 'admin', 'superadmin'])],
             'is_active' => ['boolean'],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'address' => ['nullable', 'string', 'max:500'],
+            'profile_image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
         ]);
 
-        $user = User::create([
+        $userData = [
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
             'role' => $validated['role'],
             'is_active' => $validated['is_active'] ?? true,
+            'phone' => $validated['phone'],
+            'address' => $validated['address'],
             'email_verified_at' => now(), // Auto-verify email for admin-created users
-        ]);
+        ];
+
+        // Handle profile image upload
+        if ($request->hasFile('profile_image')) {
+            $imagePath = $this->imageUploadService->uploadUserImage($request->file('profile_image'));
+            $userData['profile_image'] = $imagePath;
+        }
+
+        $user = User::create($userData);
 
         return redirect()->route('superadmin.users.index')
             ->with('success', 'User created successfully!');
@@ -91,6 +111,9 @@ class UserManagementController extends Controller
             'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
             'role' => ['required', 'string', Rule::in(['user', 'admin', 'superadmin'])],
             'is_active' => ['boolean'],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'address' => ['nullable', 'string', 'max:500'],
+            'profile_image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
         ]);
 
         $updateData = [
@@ -98,11 +121,24 @@ class UserManagementController extends Controller
             'email' => $validated['email'],
             'role' => $validated['role'],
             'is_active' => $validated['is_active'] ?? true,
+            'phone' => $validated['phone'],
+            'address' => $validated['address'],
         ];
 
         // Only update password if provided
         if (!empty($validated['password'])) {
             $updateData['password'] = Hash::make($validated['password']);
+        }
+
+        // Handle profile image upload
+        if ($request->hasFile('profile_image')) {
+            // Delete old image if exists
+            if ($user->profile_image) {
+                $this->imageUploadService->deleteUserImage($user->profile_image);
+            }
+
+            $imagePath = $this->imageUploadService->uploadUserImage($request->file('profile_image'));
+            $updateData['profile_image'] = $imagePath;
         }
 
         $user->update($updateData);
@@ -133,6 +169,12 @@ class UserManagementController extends Controller
         }
 
         $userName = $user->name;
+
+        // Delete profile image if exists
+        if ($user->profile_image) {
+            $this->imageUploadService->deleteUserImage($user->profile_image);
+        }
+
         $user->delete();
 
         return redirect()->route('superadmin.users.index')
@@ -157,10 +199,60 @@ class UserManagementController extends Controller
                 ->with('error', 'You cannot delete your own account!');
         }
 
-        $deletedCount = User::whereIn('id', $userIds)->count();
+        // Get users to delete their profile images
+        $usersToDelete = User::whereIn('id', $userIds)->get();
+
+        foreach ($usersToDelete as $user) {
+            if ($user->profile_image) {
+                $this->imageUploadService->deleteUserImage($user->profile_image);
+            }
+        }
+
+        $deletedCount = $usersToDelete->count();
         User::whereIn('id', $userIds)->delete();
 
         return redirect()->route('superadmin.users.index')
             ->with('success', "{$deletedCount} user(s) have been deleted successfully!");
+    }
+
+    /**
+     * Toggle user status (activate/deactivate)
+     */
+    public function toggleStatus(User $user): RedirectResponse
+    {
+        // Prevent deactivating yourself
+        if ($user->id === Auth::id()) {
+            return redirect()->route('superadmin.users.index')
+                ->with('error', 'You cannot deactivate your own account!');
+        }
+
+        $user->update([
+            'is_active' => !$user->is_active
+        ]);
+
+        $status = $user->is_active ? 'activated' : 'deactivated';
+
+        return redirect()->route('superadmin.users.index')
+            ->with('success', "User '{$user->name}' has been {$status} successfully!");
+    }
+
+    /**
+     * Remove user profile image
+     */
+    public function removeImage(User $user): RedirectResponse
+    {
+        if ($user->profile_image) {
+            // Delete the image file
+            $this->imageUploadService->deleteUserImage($user->profile_image);
+
+            // Update user record to remove image reference
+            $user->update(['profile_image' => null]);
+
+            return redirect()->back()
+                ->with('success', 'Profile image removed successfully!');
+        }
+
+        return redirect()->back()
+            ->with('error', 'No profile image to remove!');
     }
 }

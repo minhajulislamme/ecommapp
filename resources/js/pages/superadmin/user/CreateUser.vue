@@ -2,10 +2,11 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, useForm, router } from '@inertiajs/vue3';
-import { Users, UserPlus, Shield, Database, Eye, EyeOff, AlertCircle } from 'lucide-vue-next';
+import { Users, UserPlus, Shield, Database, Eye, EyeOff, AlertCircle, Upload, X, User, Phone, MapPin } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import Textarea from '@/components/ui/textarea.vue';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ref } from 'vue';
 import { useToast } from '@/composables/useToast';
@@ -24,6 +25,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 const showPassword = ref(false);
 const showPasswordConfirmation = ref(false);
 const { toast } = useToast();
+const imagePreview = ref<string | null>(null);
+const fileInputRef = ref<HTMLInputElement | null>(null);
 
 const form = useForm({
     name: '',
@@ -32,13 +35,69 @@ const form = useForm({
     password_confirmation: '',
     role: 'user',
     is_active: true,
+    phone: '',
+    address: '',
+    profile_image: null as File | null,
 });
 
+const handleImageUpload = (event: Event) => {
+    const target = event.target as HTMLInputElement;
+    const file = target.files?.[0];
+    
+    if (file) {
+        // Validate file size (2MB max)
+        if (file.size > 2 * 1024 * 1024) {
+            toast.error('Image size should be less than 2MB');
+            return;
+        }
+        
+        // Validate file type
+        if (!['image/jpeg', 'image/png', 'image/jpg', 'image/gif'].includes(file.type)) {
+            toast.error('Please select a valid image file (JPEG, PNG, JPG, GIF)');
+            return;
+        }
+        
+        form.profile_image = file;
+        
+        // Create preview
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            imagePreview.value = e.target?.result as string;
+        };
+        reader.readAsDataURL(file);
+    }
+};
+
+const removeImage = () => {
+    form.profile_image = null;
+    imagePreview.value = null;
+    if (fileInputRef.value) {
+        fileInputRef.value.value = '';
+    }
+};
+
 const submit = () => {
-    form.post('/superadmin/users', {
+    const formData = new FormData();
+    
+    // Append all form fields
+    formData.append('name', form.name);
+    formData.append('email', form.email);
+    formData.append('password', form.password);
+    formData.append('password_confirmation', form.password_confirmation);
+    formData.append('role', form.role);
+    formData.append('is_active', form.is_active ? '1' : '0');
+    formData.append('phone', form.phone);
+    formData.append('address', form.address);
+    
+    if (form.profile_image) {
+        formData.append('profile_image', form.profile_image);
+    }
+    
+    form.transform(() => formData).post('/superadmin/users', {
         onSuccess: () => {
             toast.success('User created successfully!');
             form.reset();
+            imagePreview.value = null;
         },
         onError: () => {
             toast.error('Failed to create user. Please check the form and try again.');
@@ -101,6 +160,54 @@ const getRoleColor = (role: string) => {
 
                     <form @submit.prevent="submit">
                         <CardContent class="space-y-6">
+                            <!-- Profile Image -->
+                            <div class="space-y-2">
+                                <Label>Profile Image</Label>
+                                <div class="flex items-start gap-4">
+                                    <div class="flex-shrink-0">
+                                        <div class="relative w-24 h-24 rounded-full border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center bg-gray-50 dark:bg-gray-800 overflow-hidden">
+                                            <template v-if="imagePreview">
+                                                <img :src="imagePreview" alt="Preview" class="w-full h-full object-cover" />
+                                                <button
+                                                    type="button"
+                                                    @click="removeImage"
+                                                    class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                                                >
+                                                    <X class="h-3 w-3" />
+                                                </button>
+                                            </template>
+                                            <template v-else>
+                                                <User class="h-8 w-8 text-gray-400" />
+                                            </template>
+                                        </div>
+                                    </div>
+                                    <div class="flex-1">
+                                        <input
+                                            ref="fileInputRef"
+                                            type="file"
+                                            @change="handleImageUpload"
+                                            accept="image/jpeg,image/png,image/jpg,image/gif"
+                                            class="hidden"
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            @click="fileInputRef?.click()"
+                                            class="w-full"
+                                        >
+                                            <Upload class="h-4 w-4 mr-2" />
+                                            Upload Image
+                                        </Button>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                            JPG, PNG, GIF up to 2MB
+                                        </p>
+                                    </div>
+                                </div>
+                                <div v-if="form.errors.profile_image" class="text-sm text-red-600 dark:text-red-400">
+                                    {{ form.errors.profile_image }}
+                                </div>
+                            </div>
+
                             <!-- Name -->
                             <div class="space-y-2">
                                 <Label for="name">Full Name</Label>
@@ -130,6 +237,43 @@ const getRoleColor = (role: string) => {
                                 />
                                 <div v-if="form.errors.email" class="text-sm text-red-600 dark:text-red-400">
                                     {{ form.errors.email }}
+                                </div>
+                            </div>
+
+                            <!-- Phone -->
+                            <div class="space-y-2">
+                                <Label for="phone">Phone Number</Label>
+                                <div class="relative">
+                                    <Phone class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                    <Input
+                                        id="phone"
+                                        v-model="form.phone"
+                                        type="tel"
+                                        placeholder="Enter phone number"
+                                        class="pl-10"
+                                        :class="form.errors.phone ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''"
+                                    />
+                                </div>
+                                <div v-if="form.errors.phone" class="text-sm text-red-600 dark:text-red-400">
+                                    {{ form.errors.phone }}
+                                </div>
+                            </div>
+
+                            <!-- Address -->
+                            <div class="space-y-2">
+                                <Label for="address">Address</Label>
+                                <div class="relative">
+                                    <MapPin class="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                                    <Textarea
+                                        id="address"
+                                        v-model="form.address"
+                                        placeholder="Enter full address"
+                                        class="pl-10 min-h-[80px]"
+                                        :class="form.errors.address ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''"
+                                    />
+                                </div>
+                                <div v-if="form.errors.address" class="text-sm text-red-600 dark:text-red-400">
+                                    {{ form.errors.address }}
                                 </div>
                             </div>
 

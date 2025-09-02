@@ -28,6 +28,9 @@ class User extends Authenticatable
         'password',
         'role',
         'is_active',
+        'profile_image',
+        'address',
+        'phone',
     ];
 
     /**
@@ -96,5 +99,39 @@ class User extends Authenticatable
             self::ROLE_ADMIN => 'Admin',
             self::ROLE_USER => 'User',
         ];
+    }
+
+    /**
+     * Get the profile image URL
+     */
+    public function getProfileImageUrl(): ?string
+    {
+        if (!$this->profile_image) {
+            return null;
+        }
+
+        // Check if it's already a full URL
+        if (str_starts_with($this->profile_image, 'http')) {
+            return $this->profile_image;
+        }
+
+        // Return the full URL to the image
+        return asset('upload/users/' . $this->profile_image);
+    }
+
+    /**
+     * Get user initials for avatar fallback
+     */
+    public function getInitials(): string
+    {
+        $names = explode(' ', trim($this->name));
+        $initials = '';
+
+        foreach ($names as $name) {
+            $initials .= strtoupper(substr($name, 0, 1));
+            if (strlen($initials) >= 2) break;
+        }
+
+        return $initials ?: 'U';
     }
 }

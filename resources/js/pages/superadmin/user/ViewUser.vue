@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
-import { Users, UserCheck, Shield, Database, Mail, Calendar, Clock, Edit, ArrowLeft, Trash2 } from 'lucide-vue-next';
+import { Users, UserCheck, Shield, Database, Mail, Calendar, Clock, Edit, ArrowLeft, Trash2, Phone, MapPin, User } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
@@ -15,6 +15,9 @@ interface User {
     email: string;
     role: string;
     is_active: boolean;
+    phone: string | null;
+    address: string | null;
+    profile_image: string | null;
     created_at: string;
     updated_at: string;
     email_verified_at: string | null;
@@ -27,6 +30,8 @@ interface Props {
 const props = defineProps<Props>();
 
 const isDeleting = ref(false);
+const isTogglingStatus = ref(false);
+const isRemovingImage = ref(false);
 const showDeleteDialog = ref(false);
 const { toast } = useToast();
 
@@ -40,6 +45,10 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/superadmin/users',
     },
 ];
+
+const getUserInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+};
 
 const getRoleIcon = (role: string) => {
     switch (role) {
@@ -104,6 +113,49 @@ const confirmDeleteUser = async () => {
         toast.error('An error occurred while deleting the user.');
     }
 };
+
+const toggleUserStatus = async () => {
+    isTogglingStatus.value = true;
+    const action = props.user.is_active ? 'deactivate' : 'activate';
+    
+    try {
+        router.patch(`/superadmin/users/${props.user.id}/toggle-status`, {}, {
+            onSuccess: () => {
+                toast.success(`User '${props.user.name}' has been ${action}d successfully!`);
+            },
+            onError: () => {
+                toast.error(`Failed to ${action} user. Please try again.`);
+            },
+            onFinish: () => {
+                isTogglingStatus.value = false;
+            }
+        });
+    } catch (error) {
+        isTogglingStatus.value = false;
+        toast.error(`An error occurred while trying to ${action} the user.`);
+    }
+};
+
+const removeProfileImage = async () => {
+    isRemovingImage.value = true;
+    
+    try {
+        router.delete(`/superadmin/users/${props.user.id}/remove-image`, {
+            onSuccess: () => {
+                toast.success('Profile image removed successfully!');
+            },
+            onError: () => {
+                toast.error('Failed to remove profile image. Please try again.');
+            },
+            onFinish: () => {
+                isRemovingImage.value = false;
+            }
+        });
+    } catch (error) {
+        isRemovingImage.value = false;
+        toast.error('An error occurred while removing the profile image.');
+    }
+};
 </script>
 
 <template>
@@ -143,10 +195,19 @@ const confirmDeleteUser = async () => {
                     <CardHeader class="pb-4">
                         <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                             <div class="flex items-center gap-4">
-                                <div class="flex h-20 w-20 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
-                                    <span class="text-2xl font-medium text-gray-600 dark:text-gray-300">
-                                        {{ user.name.charAt(0).toUpperCase() }}
-                                    </span>
+                                <div class="flex h-20 w-20 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                                    <template v-if="user.profile_image">
+                                        <img 
+                                            :src="`/upload/users/${user.profile_image}`" 
+                                            :alt="user.name"
+                                            class="w-full h-full object-cover"
+                                        />
+                                    </template>
+                                    <template v-else>
+                                        <span class="text-2xl font-medium text-gray-600 dark:text-gray-300">
+                                            {{ getUserInitials(user.name) }}
+                                        </span>
+                                    </template>
                                 </div>
                                 <div>
                                     <CardTitle class="text-2xl">{{ user.name }}</CardTitle>
@@ -204,6 +265,22 @@ const confirmDeleteUser = async () => {
                                 <div>
                                     <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Email Address</dt>
                                     <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ user.email }}</dd>
+                                </div>
+                                
+                                <div v-if="user.phone">
+                                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Phone Number</dt>
+                                    <dd class="mt-1 flex items-center gap-2 text-sm text-gray-900 dark:text-white">
+                                        <Phone class="h-4 w-4 text-gray-400" />
+                                        {{ user.phone }}
+                                    </dd>
+                                </div>
+                                
+                                <div v-if="user.address">
+                                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Address</dt>
+                                    <dd class="mt-1 flex items-start gap-2 text-sm text-gray-900 dark:text-white">
+                                        <MapPin class="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                                        <span>{{ user.address }}</span>
+                                    </dd>
                                 </div>
                                 
                                 <div>
@@ -333,11 +410,24 @@ const confirmDeleteUser = async () => {
                             
                             <Button 
                                 variant="outline"
+                                @click="toggleUserStatus"
+                                :disabled="isTogglingStatus"
                                 class="flex items-center gap-2"
                                 :class="user.is_active ? 'text-orange-600 border-orange-300 hover:bg-orange-50' : 'text-green-600 border-green-300 hover:bg-green-50'"
                             >
                                 <UserCheck class="h-4 w-4" />
-                                {{ user.is_active ? 'Deactivate Account' : 'Activate Account' }}
+                                {{ isTogglingStatus ? 'Processing...' : (user.is_active ? 'Deactivate Account' : 'Activate Account') }}
+                            </Button>
+
+                            <Button 
+                                v-if="user.profile_image"
+                                variant="outline"
+                                @click="removeProfileImage"
+                                :disabled="isRemovingImage"
+                                class="flex items-center gap-2 text-purple-600 border-purple-300 hover:bg-purple-50"
+                            >
+                                <Trash2 class="h-4 w-4" />
+                                {{ isRemovingImage ? 'Removing...' : 'Remove Image' }}
                             </Button>
                             
                             <Button 

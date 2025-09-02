@@ -2,10 +2,11 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, useForm, router } from '@inertiajs/vue3';
-import { Users, UserCheck, Shield, Database, Eye, EyeOff, AlertCircle, Save } from 'lucide-vue-next';
+import { Users, UserCheck, Shield, Database, Eye, EyeOff, AlertCircle, Save, Upload, X, User, Phone, MapPin, Trash2 } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import Textarea from '@/components/ui/textarea.vue';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ref } from 'vue';
 import { useToast } from '@/composables/useToast';
@@ -16,6 +17,9 @@ interface User {
     email: string;
     role: string;
     is_active: boolean;
+    phone: string | null;
+    address: string | null;
+    profile_image: string | null;
     created_at: string;
     email_verified_at: string | null;
 }
@@ -40,6 +44,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 const showPassword = ref(false);
 const showPasswordConfirmation = ref(false);
 const { toast } = useToast();
+const imagePreview = ref<string | null>(props.user.profile_image ? `/upload/users/${props.user.profile_image}` : null);
+const fileInputRef = ref<HTMLInputElement | null>(null);
 
 const form = useForm({
     name: props.user.name,
@@ -48,10 +54,84 @@ const form = useForm({
     password_confirmation: '',
     role: props.user.role,
     is_active: props.user.is_active,
+    phone: props.user.phone || '',
+    address: props.user.address || '',
+    profile_image: null as File | null,
 });
 
+const handleImageUpload = (event: Event) => {
+    const target = event.target as HTMLInputElement;
+    const file = target.files?.[0];
+    
+    if (file) {
+        // Validate file size (2MB max)
+        if (file.size > 2 * 1024 * 1024) {
+            toast.error('Image size should be less than 2MB');
+            return;
+        }
+        
+        // Validate file type
+        if (!['image/jpeg', 'image/png', 'image/jpg', 'image/gif'].includes(file.type)) {
+            toast.error('Please select a valid image file (JPEG, PNG, JPG, GIF)');
+            return;
+        }
+        
+        form.profile_image = file;
+        
+        // Create preview
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            imagePreview.value = e.target?.result as string;
+        };
+        reader.readAsDataURL(file);
+    }
+};
+
+const removeImage = () => {
+    form.profile_image = null;
+    imagePreview.value = null;
+    if (fileInputRef.value) {
+        fileInputRef.value.value = '';
+    }
+};
+
+const removeExistingImage = async () => {
+    if (!props.user.profile_image) return;
+    
+    try {
+        router.delete(`/superadmin/users/${props.user.id}/remove-image`, {
+            onSuccess: () => {
+                toast.success('Profile image removed successfully!');
+                imagePreview.value = null;
+            },
+            onError: () => {
+                toast.error('Failed to remove profile image. Please try again.');
+            }
+        });
+    } catch (error) {
+        toast.error('An error occurred while removing the profile image.');
+    }
+};
+
 const submit = () => {
-    form.put(`/superadmin/users/${props.user.id}`, {
+    const formData = new FormData();
+    
+    // Append all form fields
+    formData.append('name', form.name);
+    formData.append('email', form.email);
+    formData.append('password', form.password);
+    formData.append('password_confirmation', form.password_confirmation);
+    formData.append('role', form.role);
+    formData.append('is_active', form.is_active ? '1' : '0');
+    formData.append('phone', form.phone);
+    formData.append('address', form.address);
+    formData.append('_method', 'PUT');
+    
+    if (form.profile_image) {
+        formData.append('profile_image', form.profile_image);
+    }
+    
+    form.transform(() => formData).post(`/superadmin/users/${props.user.id}`, {
         onSuccess: () => {
             toast.success('User updated successfully!');
             // Don't reset the form on success, just clear password fields
@@ -62,6 +142,10 @@ const submit = () => {
             toast.error('Failed to update user. Please check the form and try again.');
         },
     });
+};
+
+const getUserInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 };
 
 const getRoleIcon = (role: string) => {
@@ -126,16 +210,37 @@ const formatDate = (date: string) => {
                         </CardHeader>
                         <CardContent class="space-y-4">
                             <div class="flex flex-col items-center text-center">
-                                <div class="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 mb-3">
-                                    <span class="text-xl font-medium text-gray-600 dark:text-gray-300">
-                                        {{ props.user.name.charAt(0).toUpperCase() }}
-                                    </span>
+                                <div class="relative mb-3">
+                                    <div class="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                                        <template v-if="props.user.profile_image">
+                                            <img 
+                                                :src="`/upload/users/${props.user.profile_image}`" 
+                                                :alt="props.user.name"
+                                                class="w-full h-full object-cover"
+                                            />
+                                        </template>
+                                        <template v-else>
+                                            <span class="text-xl font-medium text-gray-600 dark:text-gray-300">
+                                                {{ getUserInitials(props.user.name) }}
+                                            </span>
+                                        </template>
+                                    </div>
                                 </div>
                                 <h3 class="font-medium text-gray-900 dark:text-white">{{ props.user.name }}</h3>
                                 <p class="text-sm text-gray-500 dark:text-gray-400">{{ props.user.email }}</p>
                             </div>
                             
                             <div class="space-y-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                                <div v-if="props.user.phone">
+                                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Phone</dt>
+                                    <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ props.user.phone }}</dd>
+                                </div>
+                                
+                                <div v-if="props.user.address">
+                                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Address</dt>
+                                    <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ props.user.address }}</dd>
+                                </div>
+                                
                                 <div>
                                     <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Current Role</dt>
                                     <dd class="mt-1">
@@ -198,6 +303,67 @@ const formatDate = (date: string) => {
 
                         <form @submit.prevent="submit">
                             <CardContent class="space-y-6">
+                                <!-- Profile Image -->
+                                <div class="space-y-2">
+                                    <Label>Profile Image</Label>
+                                    <div class="flex items-start gap-4">
+                                        <div class="flex-shrink-0">
+                                            <div class="relative w-24 h-24 rounded-full border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center bg-gray-50 dark:bg-gray-800 overflow-hidden">
+                                                <template v-if="imagePreview">
+                                                    <img :src="imagePreview" alt="Preview" class="w-full h-full object-cover" />
+                                                    <button
+                                                        type="button"
+                                                        @click="removeImage"
+                                                        class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                                                    >
+                                                        <X class="h-3 w-3" />
+                                                    </button>
+                                                </template>
+                                                <template v-else>
+                                                    <User class="h-8 w-8 text-gray-400" />
+                                                </template>
+                                            </div>
+                                        </div>
+                                        <div class="flex-1">
+                                            <input
+                                                ref="fileInputRef"
+                                                type="file"
+                                                @change="handleImageUpload"
+                                                accept="image/jpeg,image/png,image/jpg,image/gif"
+                                                class="hidden"
+                                            />
+                                            <div class="space-y-2">
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    @click="fileInputRef?.click()"
+                                                    class="w-full"
+                                                >
+                                                    <Upload class="h-4 w-4 mr-2" />
+                                                    {{ props.user.profile_image ? 'Change Image' : 'Upload Image' }}
+                                                </Button>
+                                                
+                                                <Button
+                                                    v-if="props.user.profile_image && !imagePreview"
+                                                    type="button"
+                                                    variant="outline"
+                                                    @click="removeExistingImage"
+                                                    class="w-full text-red-600 border-red-300 hover:bg-red-50"
+                                                >
+                                                    <Trash2 class="h-4 w-4 mr-2" />
+                                                    Remove Current Image
+                                                </Button>
+                                            </div>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                JPG, PNG, GIF up to 2MB
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div v-if="form.errors.profile_image" class="text-sm text-red-600 dark:text-red-400">
+                                        {{ form.errors.profile_image }}
+                                    </div>
+                                </div>
+
                                 <!-- Name -->
                                 <div class="space-y-2">
                                     <Label for="name">Full Name</Label>
@@ -227,6 +393,43 @@ const formatDate = (date: string) => {
                                     />
                                     <div v-if="form.errors.email" class="text-sm text-red-600 dark:text-red-400">
                                         {{ form.errors.email }}
+                                    </div>
+                                </div>
+
+                                <!-- Phone -->
+                                <div class="space-y-2">
+                                    <Label for="phone">Phone Number</Label>
+                                    <div class="relative">
+                                        <Phone class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                        <Input
+                                            id="phone"
+                                            v-model="form.phone"
+                                            type="tel"
+                                            placeholder="Enter phone number"
+                                            class="pl-10"
+                                            :class="form.errors.phone ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''"
+                                        />
+                                    </div>
+                                    <div v-if="form.errors.phone" class="text-sm text-red-600 dark:text-red-400">
+                                        {{ form.errors.phone }}
+                                    </div>
+                                </div>
+
+                                <!-- Address -->
+                                <div class="space-y-2">
+                                    <Label for="address">Address</Label>
+                                    <div class="relative">
+                                        <MapPin class="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                                        <Textarea
+                                            id="address"
+                                            v-model="form.address"
+                                            placeholder="Enter full address"
+                                            class="pl-10 min-h-[80px]"
+                                            :class="form.errors.address ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''"
+                                        />
+                                    </div>
+                                    <div v-if="form.errors.address" class="text-sm text-red-600 dark:text-red-400">
+                                        {{ form.errors.address }}
                                     </div>
                                 </div>
 

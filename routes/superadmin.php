@@ -14,6 +14,8 @@ Route::middleware(['auth', 'verified', 'superadmin'])->prefix('superadmin')->nam
         Route::get('/{user}', [UserManagementController::class, 'show'])->name('show');
         Route::get('/{user}/edit', [UserManagementController::class, 'edit'])->name('edit');
         Route::put('/{user}', [UserManagementController::class, 'update'])->name('update');
+        Route::patch('/{user}/toggle-status', [UserManagementController::class, 'toggleStatus'])->name('toggle-status');
+        Route::delete('/{user}/remove-image', [UserManagementController::class, 'removeImage'])->name('remove-image');
         Route::delete('/{user}', [UserManagementController::class, 'destroy'])->name('destroy');
         Route::delete('/', [UserManagementController::class, 'bulkDestroy'])->name('bulk-destroy');
     });

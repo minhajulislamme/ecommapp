@@ -17,6 +17,9 @@ interface User {
     email: string;
     role: string;
     is_active: boolean;
+    phone?: string | null;
+    address?: string | null;
+    profile_image?: string | null;
     created_at: string;
     email_verified_at: string | null;
 }
@@ -271,6 +274,10 @@ const formatDate = (date: string) => {
         hour: '2-digit',
         minute: '2-digit',
     });
+};
+
+const getUserInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 };
 
 const getRoleIcon = (role: string) => {
@@ -965,10 +972,19 @@ const exportToExcel = async () => {
                                 <!-- User Info -->
                                 <td class="py-4">
                                     <div class="flex items-center gap-3">
-                                        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
-                                            <span class="text-sm font-medium text-gray-600 dark:text-gray-300">
-                                                {{ user.name.charAt(0).toUpperCase() }}
-                                            </span>
+                                        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                                            <template v-if="user.profile_image">
+                                                <img 
+                                                    :src="`/upload/users/${user.profile_image}`" 
+                                                    :alt="user.name"
+                                                    class="w-full h-full object-cover"
+                                                />
+                                            </template>
+                                            <template v-else>
+                                                <span class="text-sm font-medium text-gray-600 dark:text-gray-300">
+                                                    {{ getUserInitials(user.name) }}
+                                                </span>
+                                            </template>
                                         </div>
                                         <div>
                                             <p class="font-medium text-gray-900 dark:text-white">{{ user.name }}</p>
@@ -1079,10 +1095,19 @@ const exportToExcel = async () => {
                                 @change="toggleUserSelection(user.id)"
                                 class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
                             />
-                            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
-                                <span class="text-sm font-medium text-gray-600 dark:text-gray-300">
-                                    {{ user.name.charAt(0).toUpperCase() }}
-                                </span>
+                            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                                <template v-if="user.profile_image">
+                                    <img 
+                                        :src="`/upload/users/${user.profile_image}`" 
+                                        :alt="user.name"
+                                        class="w-full h-full object-cover"
+                                    />
+                                </template>
+                                <template v-else>
+                                    <span class="text-sm font-medium text-gray-600 dark:text-gray-300">
+                                        {{ getUserInitials(user.name) }}
+                                    </span>
+                                </template>
                             </div>
                             <div class="flex-1 min-w-0">
                                 <p class="font-medium text-gray-900 dark:text-white truncate">{{ user.name }}</p>

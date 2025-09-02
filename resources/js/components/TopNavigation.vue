@@ -39,7 +39,7 @@
                             v-model="searchQuery"
                             type="text" 
                             placeholder="Search products..."
-                            class="w-64 xl:w-80 pl-10 pr-4 py-2.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm placeholder-gray-500 dark:placeholder-gray-400"
+                            class="w-64 xl:w-80 pl-10 pr-4 py-2.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-0 focus:border-gray-200 dark:focus:border-gray-700 outline-none transition-all text-sm placeholder-gray-500 dark:placeholder-gray-400"
                             @focus="showSearchResults = true"
                             @blur="hideSearchResults"
                         />
@@ -352,6 +352,7 @@ const handleLogout = () => {
     router.post(logout.url(), {}, {
         onFinish: () => {
             showUserMenu.value = false;
+            showMobileMenu.value = false;
         }
     });
 };

@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
 import { ref } from 'vue';
-import { useToast } from '@/composables/useToast';
 
 interface User {
     id: number;
@@ -33,7 +32,6 @@ const isDeleting = ref(false);
 const isTogglingStatus = ref(false);
 const isRemovingImage = ref(false);
 const showDeleteDialog = ref(false);
-const { toast } = useToast();
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -99,10 +97,10 @@ const confirmDeleteUser = async () => {
     try {
         router.delete(`/superadmin/users/${props.user.id}`, {
             onSuccess: () => {
-                toast.success(`User '${props.user.name}' has been deleted successfully!`);
+                // User deleted successfully
             },
             onError: () => {
-                toast.error('Failed to delete user. Please try again.');
+                // Failed to delete user
             },
             onFinish: () => {
                 isDeleting.value = false;
@@ -110,7 +108,7 @@ const confirmDeleteUser = async () => {
         });
     } catch (error) {
         isDeleting.value = false;
-        toast.error('An error occurred while deleting the user.');
+        // An error occurred while deleting the user
     }
 };
 
@@ -121,10 +119,10 @@ const toggleUserStatus = async () => {
     try {
         router.patch(`/superadmin/users/${props.user.id}/toggle-status`, {}, {
             onSuccess: () => {
-                toast.success(`User '${props.user.name}' has been ${action}d successfully!`);
+                // User status toggled successfully
             },
             onError: () => {
-                toast.error(`Failed to ${action} user. Please try again.`);
+                // Failed to toggle user status
             },
             onFinish: () => {
                 isTogglingStatus.value = false;
@@ -132,7 +130,7 @@ const toggleUserStatus = async () => {
         });
     } catch (error) {
         isTogglingStatus.value = false;
-        toast.error(`An error occurred while trying to ${action} the user.`);
+        // An error occurred while trying to toggle the user status
     }
 };
 
@@ -142,10 +140,10 @@ const removeProfileImage = async () => {
     try {
         router.delete(`/superadmin/users/${props.user.id}/remove-image`, {
             onSuccess: () => {
-                toast.success('Profile image removed successfully!');
+                // Profile image removed successfully
             },
             onError: () => {
-                toast.error('Failed to remove profile image. Please try again.');
+                // Failed to remove profile image
             },
             onFinish: () => {
                 isRemovingImage.value = false;
@@ -153,7 +151,7 @@ const removeProfileImage = async () => {
         });
     } catch (error) {
         isRemovingImage.value = false;
-        toast.error('An error occurred while removing the profile image.');
+        // An error occurred while removing the profile image
     }
 };
 </script>

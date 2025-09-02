@@ -23,6 +23,10 @@ class AuthenticatedSessionController extends Controller
         return Inertia::render('auth/Login', [
             'canResetPassword' => Route::has('password.request'),
             'status' => Session::get('status'),
+            'flash' => [
+                'success' => Session::get('success'),
+                'error' => Session::get('error'),
+            ],
         ]);
     }
 
@@ -38,7 +42,8 @@ class AuthenticatedSessionController extends Controller
         // Redirect based on user role
         $user = Auth::user();
 
-        return $this->redirectBasedOnRole($user);
+        return $this->redirectBasedOnRole($user)
+            ->with('success', "Welcome back, {$user->name}! You have been logged in successfully.");
     }
 
     /**
@@ -64,6 +69,7 @@ class AuthenticatedSessionController extends Controller
         Session::invalidate();
         Session::regenerateToken();
 
-        return redirect('/');
+        return redirect()->route('login')
+            ->with('success', 'You have been logged out successfully.');
     }
 }

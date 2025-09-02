@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label';
 import Textarea from '@/components/ui/textarea.vue';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ref } from 'vue';
-import { useToast } from '@/composables/useToast';
 
 interface User {
     id: number;
@@ -43,7 +42,6 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const showPassword = ref(false);
 const showPasswordConfirmation = ref(false);
-const { toast } = useToast();
 const imagePreview = ref<string | null>(props.user.profile_image ? `/upload/users/${props.user.profile_image}` : null);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 
@@ -66,13 +64,13 @@ const handleImageUpload = (event: Event) => {
     if (file) {
         // Validate file size (2MB max)
         if (file.size > 2 * 1024 * 1024) {
-            toast.error('Image size should be less than 2MB');
+            // Image size should be less than 2MB
             return;
         }
         
         // Validate file type
         if (!['image/jpeg', 'image/png', 'image/jpg', 'image/gif'].includes(file.type)) {
-            toast.error('Please select a valid image file (JPEG, PNG, JPG, GIF)');
+            // Please select a valid image file (JPEG, PNG, JPG, GIF)
             return;
         }
         
@@ -101,15 +99,15 @@ const removeExistingImage = async () => {
     try {
         router.delete(`/superadmin/users/${props.user.id}/remove-image`, {
             onSuccess: () => {
-                toast.success('Profile image removed successfully!');
+                // Profile image removed successfully
                 imagePreview.value = null;
             },
             onError: () => {
-                toast.error('Failed to remove profile image. Please try again.');
+                // Failed to remove profile image
             }
         });
     } catch (error) {
-        toast.error('An error occurred while removing the profile image.');
+        // An error occurred while removing the profile image
     }
 };
 
@@ -133,13 +131,13 @@ const submit = () => {
     
     form.transform(() => formData).post(`/superadmin/users/${props.user.id}`, {
         onSuccess: () => {
-            toast.success('User updated successfully!');
+            // User updated successfully
             // Don't reset the form on success, just clear password fields
             form.password = '';
             form.password_confirmation = '';
         },
         onError: () => {
-            toast.error('Failed to update user. Please check the form and try again.');
+            // Failed to update user. Please check the form and try again.
         },
     });
 };
@@ -372,7 +370,7 @@ const formatDate = (date: string) => {
                                         v-model="form.name"
                                         type="text"
                                         placeholder="Enter user's full name"
-                                        :class="form.errors.name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''"
+                                        :class="form.errors.name ? 'border-red-500 focus:border-red-500 focus:ring-0' : ''"
                                         required
                                     />
                                     <div v-if="form.errors.name" class="text-sm text-red-600 dark:text-red-400">
@@ -388,7 +386,7 @@ const formatDate = (date: string) => {
                                         v-model="form.email"
                                         type="email"
                                         placeholder="Enter user's email address"
-                                        :class="form.errors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''"
+                                        :class="form.errors.email ? 'border-red-500 focus:border-red-500 focus:ring-0' : ''"
                                         required
                                     />
                                     <div v-if="form.errors.email" class="text-sm text-red-600 dark:text-red-400">
@@ -407,7 +405,7 @@ const formatDate = (date: string) => {
                                             type="tel"
                                             placeholder="Enter phone number"
                                             class="pl-10"
-                                            :class="form.errors.phone ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''"
+                                            :class="form.errors.phone ? 'border-red-500 focus:border-red-500 focus:ring-0' : ''"
                                         />
                                     </div>
                                     <div v-if="form.errors.phone" class="text-sm text-red-600 dark:text-red-400">
@@ -425,7 +423,7 @@ const formatDate = (date: string) => {
                                             v-model="form.address"
                                             placeholder="Enter full address"
                                             class="pl-10 min-h-[80px]"
-                                            :class="form.errors.address ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''"
+                                            :class="form.errors.address ? 'border-red-500 focus:border-red-500 focus:ring-0' : ''"
                                         />
                                     </div>
                                     <div v-if="form.errors.address" class="text-sm text-red-600 dark:text-red-400">
@@ -492,7 +490,7 @@ const formatDate = (date: string) => {
                                             v-model="form.password"
                                             :type="showPassword ? 'text' : 'password'"
                                             placeholder="Leave empty to keep current password"
-                                            :class="form.errors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''"
+                                            :class="form.errors.password ? 'border-red-500 focus:border-red-500 focus:ring-0' : ''"
                                         />
                                         <button
                                             type="button"
@@ -519,7 +517,7 @@ const formatDate = (date: string) => {
                                             v-model="form.password_confirmation"
                                             :type="showPasswordConfirmation ? 'text' : 'password'"
                                             placeholder="Confirm new password"
-                                            :class="form.errors.password_confirmation ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''"
+                                            :class="form.errors.password_confirmation ? 'border-red-500 focus:border-red-500 focus:ring-0' : ''"
                                         />
                                         <button
                                             type="button"
@@ -542,7 +540,7 @@ const formatDate = (date: string) => {
                                             id="is_active"
                                             type="checkbox"
                                             v-model="form.is_active"
-                                            class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+                                            class="rounded border-gray-300 text-blue-600 focus:ring-0 dark:border-gray-600 dark:bg-gray-700"
                                         />
                                         <Label for="is_active" class="text-sm font-normal">
                                             Active (user can log in and access the system)

@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label';
 import Textarea from '@/components/ui/textarea.vue';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ref } from 'vue';
-import { useToast } from '@/composables/useToast';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -24,7 +23,6 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const showPassword = ref(false);
 const showPasswordConfirmation = ref(false);
-const { toast } = useToast();
 const imagePreview = ref<string | null>(null);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 
@@ -47,13 +45,13 @@ const handleImageUpload = (event: Event) => {
     if (file) {
         // Validate file size (2MB max)
         if (file.size > 2 * 1024 * 1024) {
-            toast.error('Image size should be less than 2MB');
+            // Image size should be less than 2MB
             return;
         }
         
         // Validate file type
         if (!['image/jpeg', 'image/png', 'image/jpg', 'image/gif'].includes(file.type)) {
-            toast.error('Please select a valid image file (JPEG, PNG, JPG, GIF)');
+            // Please select a valid image file (JPEG, PNG, JPG, GIF)
             return;
         }
         
@@ -95,12 +93,12 @@ const submit = () => {
     
     form.transform(() => formData).post('/superadmin/users', {
         onSuccess: () => {
-            toast.success('User created successfully!');
+            // User created successfully
             form.reset();
             imagePreview.value = null;
         },
         onError: () => {
-            toast.error('Failed to create user. Please check the form and try again.');
+            // Failed to create user. Please check the form and try again.
         },
     });
 };

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
+import { ToastContainer } from '@/components/ui/toast';
 import { home } from '@/routes';
 import { Link } from '@inertiajs/vue3';
 
@@ -28,5 +29,6 @@ defineProps<{
                 <slot />
             </div>
         </div>
+        <ToastContainer />
     </div>
 </template>

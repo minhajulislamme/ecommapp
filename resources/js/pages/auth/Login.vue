@@ -15,6 +15,10 @@ import { LoaderCircle } from 'lucide-vue-next';
 defineProps<{
     status?: string;
     canResetPassword: boolean;
+    flash?: {
+        success?: string;
+        error?: string;
+    };
 }>();
 </script>
 
@@ -24,6 +28,14 @@ defineProps<{
 
         <div v-if="status" class="mb-4 text-center text-sm font-medium text-green-600">
             {{ status }}
+        </div>
+
+        <div v-if="flash?.success" class="mb-4 text-center text-sm font-medium text-green-600">
+            {{ flash.success }}
+        </div>
+
+        <div v-if="flash?.error" class="mb-4 text-center text-sm font-medium text-red-600">
+            {{ flash.error }}
         </div>
 
         <Form

@@ -48,12 +48,14 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        // Redirect to role-specific dashboard
-        return match ($user->role) {
+        // Redirect to role-specific dashboard with welcome message
+        $redirectResponse = match ($user->role) {
             'superadmin' => redirect()->route('superadmin.dashboard'),
             'admin' => redirect()->route('admin.dashboard'),
             'user' => redirect()->route('user.dashboard'),
             default => redirect()->route('user.dashboard'),
         };
+
+        return $redirectResponse->with('success', "Welcome to our platform, {$user->name}! Your account has been created successfully. Please verify your email address.");
     }
 }

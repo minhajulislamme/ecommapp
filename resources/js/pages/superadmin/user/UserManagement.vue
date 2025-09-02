@@ -8,8 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
-import { ref, computed, watch, onMounted } from 'vue';
-import { useToast } from '@/composables/useToast';
+import { ref, computed, watch } from 'vue';
 
 interface User {
     id: number;
@@ -41,7 +40,6 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-const { toast } = useToast();
 const page = usePage();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -178,10 +176,10 @@ const confirmDeleteUser = async () => {
     try {
         router.delete(`/superadmin/users/${user.id}`, {
             onSuccess: () => {
-                toast.success(`User '${user.name}' has been deleted successfully!`);
+                // User deleted successfully
             },
             onError: () => {
-                toast.error('Failed to delete user. Please try again.');
+                // Failed to delete user
             },
             onFinish: () => {
                 deletingUserId.value = null;
@@ -191,13 +189,13 @@ const confirmDeleteUser = async () => {
     } catch (error) {
         deletingUserId.value = null;
         userToDelete.value = null;
-        toast.error('An error occurred while deleting the user.');
+        // An error occurred while deleting the user
     }
 };
 
 const bulkDeleteUsers = async () => {
     if (selectedUsers.value.length === 0) {
-        toast.warning('Please select users to delete.');
+        // Please select users to delete
         return;
     }
     showBulkDeleteDialog.value = true;
@@ -213,12 +211,12 @@ const confirmBulkDeleteUsers = async () => {
                 user_ids: selectedUsers.value
             },
             onSuccess: () => {
-                toast.success(`${count} user(s) have been deleted successfully!`);
+                // Users deleted successfully
                 selectedUsers.value = [];
                 selectAll.value = false;
             },
             onError: () => {
-                toast.error('Failed to delete users. Please try again.');
+                // Failed to delete users
             },
             onFinish: () => {
                 isDeletingBulk.value = false;
@@ -226,20 +224,9 @@ const confirmBulkDeleteUsers = async () => {
         });
     } catch (error) {
         isDeletingBulk.value = false;
-        toast.error('An error occurred while deleting the users.');
+        // An error occurred while deleting the users
     }
 };
-
-// Check for flash messages on mount
-onMounted(() => {
-    const flashData = page.props.flash as any;
-    if (flashData?.success) {
-        toast.success(flashData.success);
-    }
-    if (flashData?.error) {
-        toast.error(flashData.error);
-    }
-});
 
 // Get users to export (selected or all filtered)
 const getUsersToExport = () => {
@@ -846,7 +833,7 @@ const exportToExcel = async () => {
                             <!-- Role Filter -->
                             <select
                                 v-model="selectedRole"
-                                class="flex-1 sm:flex-none rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                                class="flex-1 sm:flex-none rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-gray-300 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                                 @change="resetToFirstPage"
                             >
                                 <option value="all">All Roles</option>
@@ -858,7 +845,7 @@ const exportToExcel = async () => {
                             <!-- Status Filter -->
                             <select
                                 v-model="selectedStatus"
-                                class="flex-1 sm:flex-none rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                                class="flex-1 sm:flex-none rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-gray-300 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                                 @change="resetToFirstPage"
                             >
                                 <option value="all">All Status</option>
@@ -889,7 +876,7 @@ const exportToExcel = async () => {
                                 type="checkbox"
                                 v-model="selectAll"
                                 @change="toggleSelectAll"
-                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+                                class="rounded border-gray-300 text-blue-600 focus:ring-0 dark:border-gray-600 dark:bg-gray-700"
                             />
                             <span class="text-sm text-gray-700 dark:text-gray-300">
                                 <span class="hidden sm:inline">Select All ({{ filteredUsers.length }})</span>
@@ -935,7 +922,7 @@ const exportToExcel = async () => {
                                         type="checkbox"
                                         v-model="selectAll"
                                         @change="toggleSelectAll"
-                                        class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+                                        class="rounded border-gray-300 text-blue-600 focus:ring-0 dark:border-gray-600 dark:bg-gray-700"
                                     />
                                 </th>
                                 <th class="pb-3 text-left text-sm font-medium text-gray-500 dark:text-gray-400">User</th>
@@ -965,7 +952,7 @@ const exportToExcel = async () => {
                                         type="checkbox"
                                         :checked="isUserSelected(user.id)"
                                         @change="toggleUserSelection(user.id)"
-                                        class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+                                        class="rounded border-gray-300 text-blue-600 focus:ring-0 dark:border-gray-600 dark:bg-gray-700"
                                     />
                                 </td>
                                 
@@ -1093,7 +1080,7 @@ const exportToExcel = async () => {
                                 type="checkbox"
                                 :checked="isUserSelected(user.id)"
                                 @change="toggleUserSelection(user.id)"
-                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+                                class="rounded border-gray-300 text-blue-600 focus:ring-0 dark:border-gray-600 dark:bg-gray-700"
                             />
                             <div class="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
                                 <template v-if="user.profile_image">

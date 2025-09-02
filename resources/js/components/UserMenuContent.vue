@@ -12,7 +12,12 @@ interface Props {
 }
 
 const handleLogout = () => {
-    router.flushAll();
+    router.post(logout.url(), {}, {
+        onFinish: () => {
+            // This will be called after the logout is complete
+            router.flushAll();
+        }
+    });
 };
 
 defineProps<Props>();
@@ -35,9 +40,9 @@ defineProps<Props>();
     </DropdownMenuGroup>
     <DropdownMenuSeparator />
     <DropdownMenuItem :as-child="true">
-        <Link class="block w-full" :href="logout()" @click="handleLogout" as="button">
+        <button class="flex w-full items-center" @click="handleLogout">
             <LogOut class="mr-2 h-4 w-4" />
             Log out
-        </Link>
+        </button>
     </DropdownMenuItem>
 </template>

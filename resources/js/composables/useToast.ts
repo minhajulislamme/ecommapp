@@ -8,6 +8,8 @@ export interface Toast {
   duration?: number
 }
 
+export type ToastVariant = Toast['variant']
+
 const toasts = ref<Toast[]>([])
 
 export function useToast() {

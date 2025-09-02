@@ -18,18 +18,32 @@ class ImageUploadService
     }
 
     /**
-     * Upload and optimize user profile image
+     * Ensure directory exists, create if it doesn't
      */
-    public function uploadUserImage(UploadedFile $file, ?string $oldImage = null): string
+    protected function ensureDirectoryExists(string $path): void
+    {
+        if (!is_dir($path)) {
+            mkdir($path, 0755, true);
+        }
+    }
+
+    /**
+     * Upload and optimize image to specified directory
+     */
+    public function uploadImage(UploadedFile $file, string $directory, ?string $oldImage = null): string
     {
         // Delete old image if exists
         if ($oldImage) {
-            $this->deleteUserImage($oldImage);
+            $this->deleteImage($directory, $oldImage);
         }
+
+        // Ensure upload directory exists
+        $uploadDir = public_path("upload/{$directory}");
+        $this->ensureDirectoryExists($uploadDir);
 
         // Generate unique filename
         $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
-        $path = public_path('upload/users/' . $filename);
+        $path = public_path("upload/{$directory}/" . $filename);
 
         // Create and optimize image
         $image = $this->imageManager->read($file->getRealPath());
@@ -44,17 +58,33 @@ class ImageUploadService
     }
 
     /**
-     * Delete user image
+     * Delete image from specified directory
      */
-    public function deleteUserImage(string $filename): bool
+    public function deleteImage(string $directory, string $filename): bool
     {
-        $path = public_path('upload/users/' . $filename);
+        $path = public_path("upload/{$directory}/" . $filename);
 
         if (file_exists($path)) {
             return unlink($path);
         }
 
         return false;
+    }
+
+    /**
+     * Upload and optimize user profile image
+     */
+    public function uploadUserImage(UploadedFile $file, ?string $oldImage = null): string
+    {
+        return $this->uploadImage($file, 'users', $oldImage);
+    }
+
+    /**
+     * Delete user image
+     */
+    public function deleteUserImage(string $filename): bool
+    {
+        return $this->deleteImage('users', $filename);
     }
 
     /**

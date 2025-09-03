@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
-import { Users, UserCheck, UserX, Settings } from 'lucide-vue-next';
+import { Users, UserCheck, UserX, Settings, FolderOpen, Tag } from 'lucide-vue-next';
 import StatCard from '@/components/StatCard.vue';
 import RecentUsersTable from '@/components/RecentUsersTable.vue';
 
@@ -96,6 +96,20 @@ const breadcrumbs: BreadcrumbItem[] = [
                         >
                             <Users class="h-5 w-5" />
                             Manage Users
+                        </a>
+                        <a
+                            href="/admin/categories"
+                            class="flex items-center gap-3 rounded-lg bg-green-50 p-3 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30"
+                        >
+                            <FolderOpen class="h-5 w-5" />
+                            Manage Categories
+                        </a>
+                        <a
+                            href="/admin/subcategories"
+                            class="flex items-center gap-3 rounded-lg bg-purple-50 p-3 text-purple-700 hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-400 dark:hover:bg-purple-900/30"
+                        >
+                            <Tag class="h-5 w-5" />
+                            Manage Sub-Categories
                         </a>
                     </div>
                 </div>

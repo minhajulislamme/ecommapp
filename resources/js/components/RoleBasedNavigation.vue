@@ -9,7 +9,9 @@ import {
     Database, 
     UserCheck,
     Home,
-    Activity
+    Activity,
+    FolderOpen,
+    Tag
 } from 'lucide-vue-next';
 
 const page = usePage();
@@ -56,6 +58,16 @@ const navigationItems = computed((): NavItem[] => {
                 title: 'User Management',
                 href: '/admin/users',
                 icon: Users,
+            },
+            {
+                title: 'Categories',
+                href: '/admin/categories',
+                icon: FolderOpen,
+            },
+            {
+                title: 'Sub-Categories',
+                href: '/admin/subcategories',
+                icon: Tag,
             },
             {
                 title: 'Reports',

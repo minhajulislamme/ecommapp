@@ -21,43 +21,20 @@ const isMobile = () => {
 const getToastDuration = (variant?: ToastVariant, customDuration?: number) => {
   if (customDuration !== undefined) return customDuration
   
-  const mobile = isMobile()
-  
-  // Mobile devices get longer durations for better accessibility
-  if (mobile) {
-    switch (variant) {
-      case 'destructive':
-        return 7000 // 7 seconds for errors on mobile
-      case 'warning':
-        return 6000 // 6 seconds for warnings on mobile
-      case 'success':
-        return 4000 // 4 seconds for success on mobile
-      default:
-        return 5000 // 5 seconds for info on mobile
-    }
-  } else {
-    // Desktop gets standard durations
-    switch (variant) {
-      case 'destructive':
-        return 6000 // 6 seconds for errors on desktop
-      case 'warning':
-        return 5000 // 5 seconds for warnings on desktop
-      case 'success':
-        return 3000 // 3 seconds for success on desktop
-      default:
-        return 4000 // 4 seconds for info on desktop
-    }
-  }
+  // All toast notifications auto-hide after 5 seconds
+  return 3000
 }
 
 export function useToast() {
   const addToast = (toast: Omit<Toast, 'id'>) => {
     const id = Math.random().toString(36).substring(2, 9)
+    const duration = getToastDuration(toast.variant, toast.duration)
+    
     const newToast: Toast = {
-      id,
-      duration: getToastDuration(toast.variant, toast.duration),
       variant: 'default',
       ...toast,
+      id,
+      duration: duration,
     }
 
     toasts.value.push(newToast)

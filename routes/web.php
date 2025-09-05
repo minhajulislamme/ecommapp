@@ -3,10 +3,16 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
+use App\Http\Controllers\Public\HomeController;
+use App\Http\Controllers\Public\CategoryController;
+use App\Http\Controllers\Public\ProductController;
 
-Route::get('/', function () {
-    return Inertia::render('Welcome');
-})->name('home');
+// Public routes
+Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/categories', [CategoryController::class, 'index'])->name('categories');
+Route::get('/categories/{category:slug}', [CategoryController::class, 'show'])->name('categories.show');
+Route::get('/products', [ProductController::class, 'index'])->name('products');
+Route::get('/products/{product:slug}', [ProductController::class, 'show'])->name('products.show');
 
 // Legacy dashboard route - redirect based on role
 Route::get('dashboard', function () {

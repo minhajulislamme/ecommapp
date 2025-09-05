@@ -341,23 +341,25 @@ const submit = () => {
     if (props.isEdit && props.product) {
         submitForm.put(`/admin/products/${props.product.id}`, {
             onSuccess: () => {
-                // Toast will be handled by global flash message handler
+                toast.success('Product updated successfully!', 'Success');
             },
             onError: (errors) => {
                 console.error('Update errors:', errors);
                 // Copy errors to main form for display
                 Object.assign(form.errors, submitForm.errors);
+                toast.error('Failed to update product. Please check the form and try again.', 'Error');
             },
         });
     } else {
         submitForm.post('/admin/products', {
             onSuccess: () => {
-                // Toast will be handled by global flash message handler
+                toast.success('Product created successfully!', 'Success');
             },
             onError: (errors) => {
                 console.error('Create errors:', errors);
                 // Copy errors to main form for display
                 Object.assign(form.errors, submitForm.errors);
+                toast.error('Failed to create product. Please check the form and try again.', 'Error');
             },
         });
     }

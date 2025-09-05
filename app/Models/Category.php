@@ -29,6 +29,14 @@ class Category extends Model
     }
 
     /**
+     * Get the products for the category.
+     */
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class);
+    }
+
+    /**
      * Generate slug from name when creating
      */
     protected static function boot()

@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
-import { Users, UserCheck, UserX, Settings, FolderOpen, Tag } from 'lucide-vue-next';
+import { Users, UserCheck, UserX, Settings, FolderOpen, Tag, Package } from 'lucide-vue-next';
 import StatCard from '@/components/StatCard.vue';
 import RecentUsersTable from '@/components/RecentUsersTable.vue';
 
@@ -11,6 +11,11 @@ interface Props {
         total_users: number;
         active_users: number;
         inactive_users: number;
+        total_products: number;
+        active_products: number;
+        featured_products: number;
+        total_categories: number;
+        low_stock_products: number;
     };
     recent_users: Array<{
         id: number;
@@ -50,7 +55,8 @@ const breadcrumbs: BreadcrumbItem[] = [
             </div>
 
             <!-- Stats Grid -->
-            <div class="grid auto-rows-min gap-4 md:grid-cols-3">
+            <div class="grid auto-rows-min gap-4 md:grid-cols-3 lg:grid-cols-4">
+                <!-- User Stats -->
                 <StatCard
                     title="Total Users"
                     :value="props.stats.total_users"
@@ -68,6 +74,38 @@ const breadcrumbs: BreadcrumbItem[] = [
                     :value="props.stats.inactive_users"
                     :icon="UserX"
                     color="orange"
+                />
+                
+                <!-- Product Stats -->
+                <StatCard
+                    title="Total Products"
+                    :value="props.stats.total_products"
+                    :icon="Package"
+                    color="purple"
+                />
+                <StatCard
+                    title="Active Products"
+                    :value="props.stats.active_products"
+                    :icon="Package"
+                    color="green"
+                />
+                <StatCard
+                    title="Featured Products"
+                    :value="props.stats.featured_products"
+                    :icon="Package"
+                    color="orange"
+                />
+                <StatCard
+                    title="Categories"
+                    :value="props.stats.total_categories"
+                    :icon="FolderOpen"
+                    color="emerald"
+                />
+                <StatCard
+                    title="Low Stock"
+                    :value="props.stats.low_stock_products"
+                    :icon="Package"
+                    color="red"
                 />
             </div>
 
@@ -110,6 +148,13 @@ const breadcrumbs: BreadcrumbItem[] = [
                         >
                             <Tag class="h-5 w-5" />
                             Manage Sub-Categories
+                        </a>
+                        <a
+                            href="/admin/products"
+                            class="flex items-center gap-3 rounded-lg bg-orange-50 p-3 text-orange-700 hover:bg-orange-100 dark:bg-orange-900/20 dark:text-orange-400 dark:hover:bg-orange-900/30"
+                        >
+                            <Package class="h-5 w-5" />
+                            Manage Products
                         </a>
                     </div>
                 </div>

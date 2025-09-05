@@ -22,6 +22,8 @@ interface Product {
     category_id: number;
     sub_category_id: number | null;
     name: string;
+    slug: string;
+    sku: string;
     description: string | null;
     price: number;
     sale_price: number | null;
@@ -47,13 +49,13 @@ const imagePreview = ref<string | null>(null);
 const currentImage = ref<string | null>(props.product.image);
 
 const form = useForm({
-    category_id: props.product.category_id,
-    sub_category_id: props.product.sub_category_id || '',
+    category_id: props.product.category_id.toString(),
+    sub_category_id: props.product.sub_category_id ? props.product.sub_category_id.toString() : '',
     name: props.product.name,
     description: props.product.description || '',
-    price: props.product.price,
-    sale_price: props.product.sale_price || '',
-    stock_quantity: props.product.stock_quantity,
+    price: props.product.price.toString(),
+    sale_price: props.product.sale_price ? props.product.sale_price.toString() : '',
+    stock_quantity: props.product.stock_quantity.toString(),
     image: null as File | null,
     is_active: props.product.is_active,
     is_featured: props.product.is_featured,
@@ -85,10 +87,10 @@ watch(() => form.category_id, async (newCategoryId) => {
                 subCategories.value = await response.json();
                 
                 // If the product has a subcategory and it belongs to the new category, restore it
-                if (props.product.sub_category_id && props.product.category_id == newCategoryId) {
+                if (props.product.sub_category_id && props.product.category_id.toString() == newCategoryId) {
                     const existingSubCat = subCategories.value.find(sub => sub.id === props.product.sub_category_id);
                     if (existingSubCat) {
-                        form.sub_category_id = props.product.sub_category_id;
+                        form.sub_category_id = props.product.sub_category_id.toString();
                     }
                 }
             }
@@ -104,6 +106,20 @@ const handleImageChange = (event: Event) => {
     const file = target.files?.[0];
     
     if (file) {
+        // Validate file size (2MB max)
+        if (file.size > 2 * 1024 * 1024) {
+            toast.error('Image size must be less than 2MB.', 'Error');
+            target.value = '';
+            return;
+        }
+        
+        // Validate file type
+        if (!['image/jpeg', 'image/png', 'image/jpg', 'image/gif'].includes(file.type)) {
+            toast.error('Please select a valid image file (JPEG, PNG, JPG, GIF).', 'Error');
+            target.value = '';
+            return;
+        }
+        
         form.image = file;
         form.remove_image = false; // Reset remove flag when new image is selected
         
@@ -132,12 +148,28 @@ const removeImage = () => {
 
 // Submit form
 const submit = () => {
-    form.put(`/admin/products/${props.product.id}`, {
+    // Use POST with method spoofing for file uploads
+    form.transform((data) => ({
+        ...data,
+        _method: 'PUT',
+        category_id: parseInt(data.category_id),
+        sub_category_id: data.sub_category_id ? parseInt(data.sub_category_id) : null,
+        price: parseFloat(data.price),
+        sale_price: data.sale_price ? parseFloat(data.sale_price) : null,
+        stock_quantity: parseInt(data.stock_quantity),
+    })).post(`/admin/products/${props.product.id}`, {
+        preserveScroll: true,
         onSuccess: () => {
             // Toast will be handled by global flash message handler
         },
-        onError: () => {
-            toast.error('Failed to update product. Please check the form and try again.', 'Error');
+        onError: (errors) => {
+            if (errors.image) {
+                toast.error(errors.image, 'Image Upload Error');
+            } else if (errors.error) {
+                toast.error(errors.error, 'Update Error');
+            } else {
+                toast.error('Failed to update product. Please check the form and try again.', 'Error');
+            }
         },
     });
 };

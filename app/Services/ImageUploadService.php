@@ -23,7 +23,9 @@ class ImageUploadService
     protected function ensureDirectoryExists(string $path): void
     {
         if (!is_dir($path)) {
-            mkdir($path, 0755, true);
+            if (!mkdir($path, 0755, true) && !is_dir($path)) {
+                throw new \RuntimeException(sprintf('Directory "%s" was not created', $path));
+            }
         }
     }
 
@@ -32,6 +34,12 @@ class ImageUploadService
      */
     public function uploadImage(UploadedFile $file, string $directory, ?string $oldImage = null): string
     {
+        // Validate the uploaded file first
+        $validationErrors = $this->validateImage($file);
+        if (!empty($validationErrors)) {
+            throw new \InvalidArgumentException(implode(' ', $validationErrors));
+        }
+
         // Delete old image if exists
         if ($oldImage) {
             $this->deleteImage($directory, $oldImage);
@@ -45,14 +53,21 @@ class ImageUploadService
         $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
         $path = public_path("upload/{$directory}/" . $filename);
 
-        // Create and optimize image
-        $image = $this->imageManager->read($file->getRealPath());
+        try {
+            // Create and optimize image
+            $image = $this->imageManager->read($file->getRealPath());
 
-        // Resize to maximum 400x400 while maintaining aspect ratio
-        $image->scale(width: 400, height: 400);
+            // Resize to maximum 400x400 while maintaining aspect ratio
+            $image->scale(width: 400, height: 400);
 
-        // Save optimized image
-        $image->save($path, quality: 85);
+            // Save optimized image
+            $image->save($path, quality: 85);
+        } catch (\Exception $e) {
+            // If image processing fails, fall back to simple file copy
+            if (!move_uploaded_file($file->getRealPath(), $path)) {
+                throw new \RuntimeException("Failed to upload image: " . $e->getMessage());
+            }
+        }
 
         return $filename;
     }

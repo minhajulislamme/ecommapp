@@ -9,6 +9,7 @@ use App\Models\SubCategory;
 use App\Services\ImageUploadService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -130,57 +131,71 @@ class ProductController extends Controller
      */
     public function update(Request $request, Product $product): RedirectResponse
     {
-        $validated = $request->validate([
-            'category_id' => ['required', 'exists:categories,id'],
-            'sub_category_id' => ['nullable', 'exists:sub_categories,id'],
-            'name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'price' => ['required', 'numeric', 'min:0'],
-            'sale_price' => ['nullable', 'numeric', 'min:0.01'],
-            'stock_quantity' => ['required', 'integer', 'min:0'],
-            'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
-            'is_active' => ['boolean'],
-            'is_featured' => ['boolean'],
-            'remove_image' => ['boolean'],
-        ]);
+        try {
+            $validated = $request->validate([
+                'category_id' => ['required', 'exists:categories,id'],
+                'sub_category_id' => ['nullable', 'exists:sub_categories,id'],
+                'name' => ['required', 'string', 'max:255'],
+                'description' => ['nullable', 'string'],
+                'price' => ['required', 'numeric', 'min:0'],
+                'sale_price' => ['nullable', 'numeric', 'min:0.01'],
+                'stock_quantity' => ['required', 'integer', 'min:0'],
+                'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
+                'is_active' => ['boolean'],
+                'is_featured' => ['boolean'],
+                'remove_image' => ['boolean'],
+            ]);
 
-        $productData = [
-            'category_id' => $validated['category_id'],
-            'sub_category_id' => $validated['sub_category_id'],
-            'name' => $validated['name'],
-            'slug' => Str::slug($validated['name']),
-            'description' => $validated['description'],
-            'price' => $validated['price'],
-            'sale_price' => $validated['sale_price'],
-            'stock_quantity' => $validated['stock_quantity'],
-            'is_active' => $validated['is_active'] ?? $product->is_active,
-            'is_featured' => $validated['is_featured'] ?? $product->is_featured,
-        ];
+            $productData = [
+                'category_id' => $validated['category_id'],
+                'sub_category_id' => $validated['sub_category_id'],
+                'name' => $validated['name'],
+                'slug' => Str::slug($validated['name']),
+                'description' => $validated['description'],
+                'price' => $validated['price'],
+                'sale_price' => $validated['sale_price'],
+                'stock_quantity' => $validated['stock_quantity'],
+                'is_active' => $validated['is_active'] ?? $product->is_active,
+                'is_featured' => $validated['is_featured'] ?? $product->is_featured,
+            ];
 
-        // Handle image removal
-        if ($request->input('remove_image')) {
-            if ($product->image) {
-                $this->imageUploadService->deleteImage('products', $product->image);
+            // Handle image removal
+            if ($request->input('remove_image')) {
+                if ($product->image) {
+                    $this->imageUploadService->deleteImage('products', $product->image);
+                }
+                $productData['image'] = null;
             }
-            $productData['image'] = null;
-        }
-        // Handle image upload (only if not removing)
-        elseif ($request->hasFile('image')) {
-            // Delete old image if exists
-            if ($product->image) {
-                $this->imageUploadService->deleteImage('products', $product->image);
+            // Handle image upload (only if not removing)
+            elseif ($request->hasFile('image')) {
+                try {
+                    // Delete old image if exists
+                    if ($product->image) {
+                        $this->imageUploadService->deleteImage('products', $product->image);
+                    }
+
+                    $productData['image'] = $this->imageUploadService->uploadImage(
+                        $request->file('image'),
+                        'products'
+                    );
+                } catch (\Exception $e) {
+                    Log::error('Image upload failed: ' . $e->getMessage());
+                    return redirect()->back()
+                        ->withInput()
+                        ->withErrors(['image' => 'Failed to upload image: ' . $e->getMessage()]);
+                }
             }
 
-            $productData['image'] = $this->imageUploadService->uploadImage(
-                $request->file('image'),
-                'products'
-            );
+            $product->update($productData);
+
+            return redirect()->route('admin.products.index')
+                ->with('success', "Product '{$product->name}' has been updated successfully.");
+        } catch (\Exception $e) {
+            Log::error('Product update failed: ' . $e->getMessage());
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['error' => 'Failed to update product: ' . $e->getMessage()]);
         }
-
-        $product->update($productData);
-
-        return redirect()->route('admin.products.index')
-            ->with('success', "Product '{$product->name}' has been updated successfully.");
     }
 
     /**

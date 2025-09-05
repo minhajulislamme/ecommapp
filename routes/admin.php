@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\SubCategoryController;
 use App\Http\Controllers\Admin\ProductController;
+use App\Http\Controllers\Admin\ProductVariationController;
 use App\Http\Controllers\MailNotificationController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -71,6 +72,19 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
 
         // API route for getting subcategories by category
         Route::get('/subcategories/{categoryId}', [ProductController::class, 'getSubcategoriesByCategory'])->name('subcategories');
+
+        // Product variation routes
+        Route::prefix('{product}/variations')->name('variations.')->group(function () {
+            Route::get('/', [ProductVariationController::class, 'index'])->name('index');
+            Route::get('/create', [ProductVariationController::class, 'create'])->name('create');
+            Route::get('/bulk-create', [ProductVariationController::class, 'bulkCreate'])->name('bulk-create');
+            Route::post('/', [ProductVariationController::class, 'store'])->name('store');
+            Route::post('/bulk', [ProductVariationController::class, 'bulkStore'])->name('bulk-store');
+            Route::get('/{variation}/edit', [ProductVariationController::class, 'edit'])->name('edit');
+            Route::put('/{variation}', [ProductVariationController::class, 'update'])->name('update');
+            Route::patch('/{variation}/toggle-status', [ProductVariationController::class, 'toggleStatus'])->name('toggle-status');
+            Route::delete('/{variation}', [ProductVariationController::class, 'destroy'])->name('destroy');
+        });
     });
 
     // General mail routes

@@ -17,7 +17,7 @@ class ProductController extends Controller
      */
     public function index(Request $request): Response
     {
-        $query = Product::with(['category', 'subCategory'])
+        $query = Product::with(['category', 'subCategory', 'activeVariations'])
             ->where('is_active', true);
 
         // Apply category filter
@@ -40,12 +40,22 @@ class ProductController extends Controller
             });
         }
 
-        // Apply price range filter
+        // Apply price range filter - considering variations
         if ($request->filled('min_price')) {
-            $query->where('price', '>=', $request->min_price);
+            $query->where(function ($q) use ($request) {
+                $q->where('price', '>=', $request->min_price)
+                    ->orWhereHas('activeVariations', function ($vq) use ($request) {
+                        $vq->where('price', '>=', $request->min_price);
+                    });
+            });
         }
         if ($request->filled('max_price')) {
-            $query->where('price', '<=', $request->max_price);
+            $query->where(function ($q) use ($request) {
+                $q->where('price', '<=', $request->max_price)
+                    ->orWhereHas('activeVariations', function ($vq) use ($request) {
+                        $vq->where('price', '<=', $request->max_price);
+                    });
+            });
         }
 
         // Apply sorting
@@ -69,6 +79,12 @@ class ProductController extends Controller
         }
 
         $products = $query->paginate(12)->withQueryString();
+
+        // Transform products to include variation info
+        $products->getCollection()->transform(function ($product) {
+            // These are already available as accessors, no need to assign
+            return $product;
+        });
 
         // Get filter options
         $categories = Category::where('is_active', true)
@@ -100,11 +116,39 @@ class ProductController extends Controller
      */
     public function show(Product $product): Response
     {
-        // Load relationships
-        $product->load(['category', 'subCategory']);
+        // Load relationships including variations
+        $product->load(['category', 'subCategory', 'activeVariations']);
+
+        // Group variations by attribute type for easy display
+        $variationGroups = $product->activeVariations->groupBy(function ($variation) {
+            // Extract the attribute type from attribute_values JSON
+            $attributes = is_array($variation->attribute_values) ? $variation->attribute_values : [];
+            return count($attributes) > 0 ? ucfirst(array_keys($attributes)[0]) : 'Default';
+        })->map(function ($variations, $attributeType) {
+            return [
+                'name' => $attributeType,
+                'options' => $variations->map(function ($variation) {
+                    $attributes = is_array($variation->attribute_values) ? $variation->attribute_values : [];
+                    $attributeValue = count($attributes) > 0 ? array_values($attributes)[0] : $variation->display_name;
+
+                    return [
+                        'id' => $variation->id,
+                        'value' => $attributeValue,
+                        'display_name' => $variation->display_name,
+                        'price' => $variation->price,
+                        'sale_price' => $variation->sale_price,
+                        'effective_price' => $variation->effective_price,
+                        'is_on_sale' => $variation->is_on_sale,
+                        'stock_quantity' => $variation->stock_quantity,
+                        'sku' => $variation->sku,
+                        'is_available' => $variation->stock_quantity > 0,
+                    ];
+                })->values()
+            ];
+        })->values();
 
         // Get related products from the same category
-        $relatedProducts = Product::with(['category', 'subCategory'])
+        $relatedProducts = Product::with(['category', 'subCategory', 'activeVariations'])
             ->where('is_active', true)
             ->where('category_id', $product->category_id)
             ->where('id', '!=', $product->id)
@@ -114,7 +158,7 @@ class ProductController extends Controller
 
         // Get other products from the same subcategory if exists
         if ($product->sub_category_id) {
-            $similarProducts = Product::with(['category', 'subCategory'])
+            $similarProducts = Product::with(['category', 'subCategory', 'activeVariations'])
                 ->where('is_active', true)
                 ->where('sub_category_id', $product->sub_category_id)
                 ->where('id', '!=', $product->id)
@@ -126,6 +170,7 @@ class ProductController extends Controller
 
         return Inertia::render('Public/ProductDetail', [
             'product' => $product,
+            'variationGroups' => $variationGroups,
             'relatedProducts' => $relatedProducts,
             'similarProducts' => $similarProducts,
         ]);

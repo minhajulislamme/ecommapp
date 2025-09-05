@@ -150,8 +150,15 @@ const breadcrumbs: BreadcrumbItem[] = [
                             Manage Sub-Categories
                         </a>
                         <a
-                            href="/admin/products"
+                            href="/admin/products/create"
                             class="flex items-center gap-3 rounded-lg bg-orange-50 p-3 text-orange-700 hover:bg-orange-100 dark:bg-orange-900/20 dark:text-orange-400 dark:hover:bg-orange-900/30"
+                        >
+                            <Package class="h-5 w-5" />
+                            Add New Product
+                        </a>
+                        <a
+                            href="/admin/products"
+                            class="flex items-center gap-3 rounded-lg bg-blue-50 p-3 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
                         >
                             <Package class="h-5 w-5" />
                             Manage Products

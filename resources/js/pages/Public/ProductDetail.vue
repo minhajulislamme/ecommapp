@@ -28,8 +28,27 @@ interface Product {
     };
 }
 
+interface VariationOption {
+    id: number;
+    value: string;
+    display_name: string;
+    price: number;
+    sale_price?: number;
+    effective_price: number;
+    is_on_sale: boolean;
+    stock_quantity: number;
+    sku: string;
+    is_available: boolean;
+}
+
+interface VariationGroup {
+    name: string;
+    options: VariationOption[];
+}
+
 interface Props {
     product: Product;
+    variationGroups: VariationGroup[];
     relatedProducts: Product[];
     similarProducts: Product[];
 }
@@ -38,6 +57,16 @@ const props = defineProps<Props>();
 
 const selectedImageIndex = ref(0);
 const quantity = ref(1);
+const selectedVariations = ref<Record<string, VariationOption>>({});
+
+// Initialize with first option of each variation group
+if (props.variationGroups && props.variationGroups.length > 0) {
+    props.variationGroups.forEach(group => {
+        if (group.options.length > 0) {
+            selectedVariations.value[group.name] = group.options[0];
+        }
+    });
+}
 
 const allImages = [
     props.product.image,
@@ -49,6 +78,30 @@ const formatPrice = (price: number) => {
         style: 'currency',
         currency: 'USD',
     }).format(price);
+};
+
+const selectVariation = (groupName: string, option: VariationOption) => {
+    selectedVariations.value[groupName] = option;
+};
+
+const getCurrentPrice = () => {
+    const selectedVariationOptions = Object.values(selectedVariations.value);
+    if (selectedVariationOptions.length > 0) {
+        return selectedVariationOptions[0].effective_price;
+    }
+    return props.product.sale_price || props.product.price;
+};
+
+const getCurrentStock = () => {
+    const selectedVariationOptions = Object.values(selectedVariations.value);
+    if (selectedVariationOptions.length > 0) {
+        return selectedVariationOptions[0].stock_quantity;
+    }
+    return props.product.stock_quantity;
+};
+
+const isInStock = () => {
+    return getCurrentStock() > 0;
 };
 
 const selectImage = (index: number) => {
@@ -216,15 +269,31 @@ const shareProduct = () => {
                         
                         <!-- Price -->
                         <div class="flex items-center gap-4">
-                            <div v-if="product.sale_price" class="flex items-center gap-3">
-                                <span class="text-3xl font-bold text-red-600 dark:text-red-400">{{ formatPrice(product.sale_price) }}</span>
-                                <span class="text-xl text-gray-500 line-through">{{ formatPrice(product.price) }}</span>
-                                <span class="inline-flex items-center px-3 py-1 text-sm font-medium bg-red-100 text-red-800 rounded-full">
-                                    Save {{ formatPrice(product.price - product.sale_price) }}
-                                </span>
+                            <div v-if="Object.values(selectedVariations).length > 0">
+                                <!-- Show variation price -->
+                                <div v-if="Object.values(selectedVariations)[0].is_on_sale" class="flex items-center gap-3">
+                                    <span class="text-3xl font-bold text-red-600 dark:text-red-400">{{ formatPrice(Object.values(selectedVariations)[0].sale_price || 0) }}</span>
+                                    <span class="text-xl text-gray-500 line-through">{{ formatPrice(Object.values(selectedVariations)[0].price) }}</span>
+                                    <span class="inline-flex items-center px-3 py-1 text-sm font-medium bg-red-100 text-red-800 rounded-full">
+                                        Save {{ formatPrice(Object.values(selectedVariations)[0].price - (Object.values(selectedVariations)[0].sale_price || 0)) }}
+                                    </span>
+                                </div>
+                                <div v-else>
+                                    <span class="text-3xl font-bold text-gray-900 dark:text-white">{{ formatPrice(Object.values(selectedVariations)[0].price) }}</span>
+                                </div>
                             </div>
                             <div v-else>
-                                <span class="text-3xl font-bold text-gray-900 dark:text-white">{{ formatPrice(product.price) }}</span>
+                                <!-- Show base product price -->
+                                <div v-if="product.sale_price" class="flex items-center gap-3">
+                                    <span class="text-3xl font-bold text-red-600 dark:text-red-400">{{ formatPrice(product.sale_price) }}</span>
+                                    <span class="text-xl text-gray-500 line-through">{{ formatPrice(product.price) }}</span>
+                                    <span class="inline-flex items-center px-3 py-1 text-sm font-medium bg-red-100 text-red-800 rounded-full">
+                                        Save {{ formatPrice(product.price - product.sale_price) }}
+                                    </span>
+                                </div>
+                                <div v-else>
+                                    <span class="text-3xl font-bold text-gray-900 dark:text-white">{{ formatPrice(product.price) }}</span>
+                                </div>
                             </div>
                         </div>
                         
@@ -232,14 +301,41 @@ const shareProduct = () => {
                         <div class="flex items-center gap-2">
                             <div :class="[
                                 'w-3 h-3 rounded-full',
-                                product.stock_quantity > 0 ? 'bg-green-500' : 'bg-red-500'
+                                getCurrentStock() > 0 ? 'bg-green-500' : 'bg-red-500'
                             ]"></div>
                             <span :class="[
                                 'font-medium',
-                                product.stock_quantity > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                                getCurrentStock() > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                             ]">
-                                {{ product.stock_quantity > 0 ? `In Stock (${product.stock_quantity} available)` : 'Out of Stock' }}
+                                {{ getCurrentStock() > 0 ? `In Stock (${getCurrentStock()} available)` : 'Out of Stock' }}
                             </span>
+                        </div>
+
+                        <!-- Variations -->
+                        <div v-if="variationGroups && variationGroups.length > 0" class="space-y-4">
+                            <div v-for="group in variationGroups" :key="group.name" class="space-y-2">
+                                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    {{ group.name }}:
+                                </h4>
+                                <div class="flex flex-wrap gap-2">
+                                    <button
+                                        v-for="option in group.options"
+                                        :key="option.id"
+                                        @click="selectVariation(group.name, option)"
+                                        :disabled="!option.is_available"
+                                        :class="[
+                                            'px-4 py-2 text-sm font-medium rounded-lg border transition-all',
+                                            selectedVariations[group.name]?.id === option.id
+                                                ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900 dark:text-blue-200'
+                                                : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300',
+                                            !option.is_available ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                                        ]"
+                                    >
+                                        {{ option.value }}
+                                        <span v-if="!option.is_available" class="text-xs text-red-500 block">Out of stock</span>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                         
                         <!-- Description -->
@@ -249,7 +345,7 @@ const shareProduct = () => {
                         </div>
                         
                         <!-- Quantity and Add to Cart -->
-                        <div v-if="product.stock_quantity > 0" class="space-y-4">
+                        <div v-if="isInStock()" class="space-y-4">
                             <div class="flex items-center gap-4">
                                 <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Quantity:</label>
                                 <div class="flex items-center border border-gray-300 dark:border-gray-600 rounded-lg">
@@ -263,11 +359,11 @@ const shareProduct = () => {
                                         v-model.number="quantity"
                                         type="number"
                                         min="1"
-                                        :max="product.stock_quantity"
+                                        :max="getCurrentStock()"
                                         class="w-16 text-center border-0 bg-transparent text-gray-900 dark:text-white focus:ring-0"
                                     />
                                     <button
-                                        @click="quantity = Math.min(product.stock_quantity, quantity + 1)"
+                                        @click="quantity = Math.min(getCurrentStock(), quantity + 1)"
                                         class="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                                     >
                                         +

@@ -3,7 +3,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
-import { Search, Plus, Edit, Trash2, ToggleLeft, ToggleRight, Star, Package, AlertTriangle } from 'lucide-vue-next';
+import { Search, Plus, Edit, Trash2, ToggleLeft, ToggleRight, Star, Package, AlertTriangle, Settings } from 'lucide-vue-next';
 import StatusBadge from '@/components/StatusBadge.vue';
 import { useToast } from '@/composables/useToast';
 import { Button } from '@/components/ui/button';
@@ -30,6 +30,10 @@ interface Product {
     is_active: boolean;
     is_featured: boolean;
     created_at: string;
+    has_variations: boolean;
+    variations_count: number;
+    total_stock: number;
+    price_range: string | null;
     category: {
         id: number;
         name: string;
@@ -315,17 +319,28 @@ const getImageUrl = (image: string | null) => {
                                 <!-- Price -->
                                 <td class="px-6 py-4">
                                     <div class="text-sm font-medium text-gray-900 dark:text-white">
-                                        {{ formatPrice(product.sale_price || product.price) }}
+                                        {{ product.has_variations && product.price_range 
+                                            ? product.price_range 
+                                            : formatPrice(product.sale_price || product.price) 
+                                        }}
                                     </div>
-                                    <div v-if="product.sale_price" class="text-sm text-gray-500 line-through dark:text-gray-400">
+                                    <div v-if="product.sale_price && !product.has_variations" class="text-sm text-gray-500 line-through dark:text-gray-400">
                                         {{ formatPrice(product.price) }}
+                                    </div>
+                                    <div v-if="product.has_variations" class="text-xs text-gray-500 dark:text-gray-400">
+                                        Variable pricing
                                     </div>
                                 </td>
 
                                 <!-- Stock -->
                                 <td class="px-6 py-4">
-                                    <div class="text-sm text-gray-900 dark:text-white">{{ product.stock_quantity }}</div>
-                                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                                    <div class="text-sm text-gray-900 dark:text-white">
+                                        {{ product.has_variations ? product.total_stock || 0 : product.stock_quantity }}
+                                    </div>
+                                    <div v-if="product.has_variations" class="text-xs text-gray-500 dark:text-gray-400">
+                                        {{ product.variations_count }} variations
+                                    </div>
+                                    <div v-else class="text-xs text-gray-500 dark:text-gray-400">
                                         {{ product.stock_quantity > 0 ? 'In Stock' : 'Out of Stock' }}
                                     </div>
                                 </td>
@@ -372,6 +387,16 @@ const getImageUrl = (image: string | null) => {
                                         >
                                             <Star class="h-3 w-3" />
                                         </button>
+
+                                        <!-- Manage Variations (only for products with variations) -->
+                                        <Link
+                                            v-if="product.has_variations"
+                                            :href="`/admin/products/${product.id}/variations`"
+                                            class="inline-flex items-center rounded-md bg-purple-100 px-2 py-1 text-xs font-medium text-purple-700 hover:bg-purple-200 dark:bg-purple-900/20 dark:text-purple-400"
+                                            title="Manage Variations"
+                                        >
+                                            <Settings class="h-3 w-3" />
+                                        </Link>
 
                                         <!-- Edit -->
                                         <Link

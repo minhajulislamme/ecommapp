@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 class Product extends Model
@@ -46,6 +47,22 @@ class Product extends Model
     public function subCategory(): BelongsTo
     {
         return $this->belongsTo(SubCategory::class);
+    }
+
+    /**
+     * Get the variations for the product.
+     */
+    public function variations(): HasMany
+    {
+        return $this->hasMany(ProductVariation::class);
+    }
+
+    /**
+     * Get active variations for the product.
+     */
+    public function activeVariations(): HasMany
+    {
+        return $this->hasMany(ProductVariation::class)->where('is_active', true);
     }
 
     /**
@@ -155,5 +172,67 @@ class Product extends Model
         }
 
         return array_unique($allImages);
+    }
+
+    /**
+     * Check if product has variations
+     */
+    public function hasVariations(): bool
+    {
+        return $this->variations()->exists();
+    }
+
+    /**
+     * Get the cheapest variation price or base price
+     */
+    public function getMinPriceAttribute()
+    {
+        if ($this->hasVariations()) {
+            $minVariationPrice = $this->activeVariations()->min('price');
+            return $minVariationPrice ?? $this->price;
+        }
+        return $this->price;
+    }
+
+    /**
+     * Get the most expensive variation price or base price
+     */
+    public function getMaxPriceAttribute()
+    {
+        if ($this->hasVariations()) {
+            $maxVariationPrice = $this->activeVariations()->max('price');
+            return $maxVariationPrice ?? $this->price;
+        }
+        return $this->price;
+    }
+
+    /**
+     * Get price range for display
+     */
+    public function getPriceRangeAttribute()
+    {
+        if ($this->hasVariations()) {
+            $minPrice = $this->min_price;
+            $maxPrice = $this->max_price;
+
+            if ($minPrice == $maxPrice) {
+                return '$' . number_format($minPrice, 2);
+            }
+
+            return '$' . number_format($minPrice, 2) . ' - $' . number_format($maxPrice, 2);
+        }
+
+        return '$' . number_format($this->effective_price, 2);
+    }
+
+    /**
+     * Get total stock including variations
+     */
+    public function getTotalStockAttribute()
+    {
+        if ($this->hasVariations()) {
+            return $this->activeVariations()->sum('stock_quantity');
+        }
+        return $this->stock_quantity;
     }
 }

@@ -26,6 +26,7 @@ interface Product {
     sku: string;
     stock_quantity: number;
     image: string;
+    images: string[] | null;
     is_active: boolean;
     is_featured: boolean;
     created_at: string;

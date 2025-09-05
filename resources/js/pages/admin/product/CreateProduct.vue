@@ -26,6 +26,7 @@ const { toast } = useToast();
 
 const subCategories = ref<SubCategory[]>([]);
 const imagePreview = ref<string | null>(null);
+const galleryPreviews = ref<string[]>([]);
 
 const form = useForm({
     category_id: '',
@@ -36,6 +37,7 @@ const form = useForm({
     sale_price: '',
     stock_quantity: 0,
     image: null as File | null,
+    gallery_images: [] as File[],
     is_active: true,
     is_featured: false,
 });
@@ -80,6 +82,48 @@ const handleImageChange = (event: Event) => {
     }
 };
 
+// Handle gallery images selection
+const handleGalleryImagesChange = (event: Event) => {
+    const target = event.target as HTMLInputElement;
+    const files = Array.from(target.files || []);
+    
+    if (files.length > 0) {
+        // Validate total gallery images (max 5)
+        if (form.gallery_images.length + files.length > 5) {
+            toast.error('Maximum 5 gallery images allowed.', 'Error');
+            target.value = '';
+            return;
+        }
+        
+        // Validate each file
+        for (const file of files) {
+            if (file.size > 2 * 1024 * 1024) {
+                toast.error('Each image must be less than 2MB.', 'Error');
+                target.value = '';
+                return;
+            }
+            
+            if (!['image/jpeg', 'image/png', 'image/jpg', 'image/gif'].includes(file.type)) {
+                toast.error('Please select valid image files (JPEG, PNG, JPG, GIF).', 'Error');
+                target.value = '';
+                return;
+            }
+        }
+        
+        // Add files to form data
+        form.gallery_images.push(...files);
+        
+        // Create previews
+        files.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                galleryPreviews.value.push(e.target?.result as string);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+};
+
 // Remove image
 const removeImage = () => {
     form.image = null;
@@ -90,6 +134,12 @@ const removeImage = () => {
     if (fileInput) {
         fileInput.value = '';
     }
+};
+
+// Remove gallery image
+const removeGalleryImage = (index: number) => {
+    form.gallery_images.splice(index, 1);
+    galleryPreviews.value.splice(index, 1);
 };
 
 // Submit form
@@ -277,7 +327,7 @@ const submit = () => {
                     <!-- Image Upload -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Product Image
+                            Main Product Image
                         </label>
                         <div class="mt-1">
                             <!-- Image Preview -->
@@ -305,7 +355,7 @@ const submit = () => {
                                     class="cursor-pointer inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                                 >
                                     <Upload class="h-4 w-4" />
-                                    Choose Image
+                                    Choose Main Image
                                 </label>
                                 <input
                                     id="image"
@@ -319,6 +369,62 @@ const submit = () => {
                                 </span>
                             </div>
                             <div v-if="form.errors.image" class="mt-1 text-sm text-red-600">{{ form.errors.image }}</div>
+                        </div>
+                    </div>
+
+                    <!-- Gallery Images Upload -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Gallery Images
+                        </label>
+                        <p class="mb-2 text-xs text-gray-500 dark:text-gray-400">Upload up to 5 additional images for the product gallery</p>
+                        <div class="mt-1">
+                            <!-- Gallery Previews -->
+                            <div v-if="galleryPreviews.length > 0" class="mb-4">
+                                <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
+                                    <div 
+                                        v-for="(preview, index) in galleryPreviews" 
+                                        :key="index"
+                                        class="relative"
+                                    >
+                                        <img
+                                            :src="preview"
+                                            alt="Gallery Preview"
+                                            class="h-20 w-20 rounded-lg object-cover"
+                                        />
+                                        <button
+                                            type="button"
+                                            @click="removeGalleryImage(index)"
+                                            class="absolute -right-1 -top-1 rounded-full bg-red-500 p-1 text-white hover:bg-red-600"
+                                        >
+                                            <X class="h-3 w-3" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- File Input -->
+                            <div class="flex items-center gap-4">
+                                <label
+                                    for="gallery_images"
+                                    class="cursor-pointer inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                                >
+                                    <Upload class="h-4 w-4" />
+                                    Add Gallery Images
+                                </label>
+                                <input
+                                    id="gallery_images"
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    class="hidden"
+                                    @change="handleGalleryImagesChange"
+                                />
+                                <span class="text-sm text-gray-500 dark:text-gray-400">
+                                    Select multiple images ({{ form.gallery_images.length }}/5)
+                                </span>
+                            </div>
+                            <div v-if="form.errors.gallery_images" class="mt-1 text-sm text-red-600">{{ form.errors.gallery_images }}</div>
                         </div>
                     </div>
 

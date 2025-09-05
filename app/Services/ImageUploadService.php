@@ -103,6 +103,88 @@ class ImageUploadService
     }
 
     /**
+     * Upload multiple images for product gallery
+     */
+    public function uploadGalleryImages(array $files, string $directory): array
+    {
+        $uploadedFiles = [];
+
+        foreach ($files as $file) {
+            try {
+                $filename = $this->uploadImage($file, $directory);
+                $uploadedFiles[] = $filename;
+            } catch (\Exception $e) {
+                // If one image fails, clean up any already uploaded images
+                foreach ($uploadedFiles as $uploadedFile) {
+                    $this->deleteImage($directory, $uploadedFile);
+                }
+                throw new \RuntimeException("Failed to upload gallery images: " . $e->getMessage());
+            }
+        }
+
+        return $uploadedFiles;
+    }
+
+    /**
+     * Delete multiple images from gallery
+     */
+    public function deleteGalleryImages(array $filenames, string $directory): int
+    {
+        $deletedCount = 0;
+
+        foreach ($filenames as $filename) {
+            if ($this->deleteImage($directory, $filename)) {
+                $deletedCount++;
+            }
+        }
+
+        return $deletedCount;
+    }
+
+    /**
+     * Upload product images (main + gallery)
+     */
+    public function uploadProductImages(?\Illuminate\Http\UploadedFile $mainImage, array $galleryFiles = [], ?string $oldMainImage = null): array
+    {
+        $result = [
+            'main_image' => null,
+            'gallery_images' => []
+        ];
+
+        // Upload main image if provided
+        if ($mainImage) {
+            $result['main_image'] = $this->uploadImage($mainImage, 'products', $oldMainImage);
+        }
+
+        // Upload gallery images if provided
+        if (!empty($galleryFiles)) {
+            $result['gallery_images'] = $this->uploadGalleryImages($galleryFiles, 'products');
+        }
+
+        return $result;
+    }
+
+    /**
+     * Delete product images (main + gallery)
+     */
+    public function deleteProductImages(?string $mainImage, array $galleryImages = []): bool
+    {
+        $success = true;
+
+        // Delete main image
+        if ($mainImage) {
+            $success &= $this->deleteImage('products', $mainImage);
+        }
+
+        // Delete gallery images
+        if (!empty($galleryImages)) {
+            $this->deleteGalleryImages($galleryImages, 'products');
+        }
+
+        return $success;
+    }
+
+    /**
      * Get valid image mime types
      */
     public function getValidMimeTypes(): array

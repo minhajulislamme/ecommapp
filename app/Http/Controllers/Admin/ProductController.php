@@ -77,35 +77,45 @@ class ProductController extends Controller
             'sale_price' => ['nullable', 'numeric', 'min:0'],
             'stock_quantity' => ['required', 'integer', 'min:0'],
             'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
+            'gallery_images' => ['nullable', 'array', 'max:5'],
+            'gallery_images.*' => ['image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
             'is_active' => ['boolean'],
             'is_featured' => ['boolean'],
         ]);
 
-        $productData = [
-            'category_id' => $validated['category_id'],
-            'sub_category_id' => $validated['sub_category_id'],
-            'name' => $validated['name'],
-            'slug' => Str::slug($validated['name']),
-            'description' => $validated['description'],
-            'price' => $validated['price'],
-            'sale_price' => $validated['sale_price'],
-            'stock_quantity' => $validated['stock_quantity'],
-            'is_active' => $validated['is_active'] ?? true,
-            'is_featured' => $validated['is_featured'] ?? false,
-        ];
+        try {
+            $productData = [
+                'category_id' => $validated['category_id'],
+                'sub_category_id' => $validated['sub_category_id'],
+                'name' => $validated['name'],
+                'slug' => Str::slug($validated['name']),
+                'description' => $validated['description'],
+                'price' => $validated['price'],
+                'sale_price' => $validated['sale_price'],
+                'stock_quantity' => $validated['stock_quantity'],
+                'is_active' => $validated['is_active'] ?? true,
+                'is_featured' => $validated['is_featured'] ?? false,
+            ];
 
-        // Handle image upload
-        if ($request->hasFile('image')) {
-            $productData['image'] = $this->imageUploadService->uploadImage(
+            // Handle image uploads
+            $imageResults = $this->imageUploadService->uploadProductImages(
                 $request->file('image'),
-                'products'
+                $request->file('gallery_images', [])
             );
+
+            $productData['image'] = $imageResults['main_image'];
+            $productData['images'] = $imageResults['gallery_images'];
+
+            $product = Product::create($productData);
+
+            return redirect()->route('admin.products.index')
+                ->with('success', "Product '{$product->name}' has been created successfully.");
+        } catch (\Exception $e) {
+            Log::error('Product creation failed: ' . $e->getMessage());
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['error' => 'Failed to create product: ' . $e->getMessage()]);
         }
-
-        $product = Product::create($productData);
-
-        return redirect()->route('admin.products.index')
-            ->with('success', "Product '{$product->name}' has been created successfully.");
     }
 
     /**
@@ -141,9 +151,13 @@ class ProductController extends Controller
                 'sale_price' => ['nullable', 'numeric', 'min:0.01'],
                 'stock_quantity' => ['required', 'integer', 'min:0'],
                 'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
+                'gallery_images' => ['nullable', 'array', 'max:5'],
+                'gallery_images.*' => ['image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
                 'is_active' => ['boolean'],
                 'is_featured' => ['boolean'],
                 'remove_image' => ['boolean'],
+                'remove_gallery_images' => ['nullable', 'array'],
+                'remove_gallery_images.*' => ['string'],
             ]);
 
             $productData = [
@@ -159,32 +173,62 @@ class ProductController extends Controller
                 'is_featured' => $validated['is_featured'] ?? $product->is_featured,
             ];
 
-            // Handle image removal
+            // Handle main image removal
             if ($request->input('remove_image')) {
                 if ($product->image) {
                     $this->imageUploadService->deleteImage('products', $product->image);
                 }
                 $productData['image'] = null;
             }
-            // Handle image upload (only if not removing)
+            // Handle main image upload (only if not removing)
             elseif ($request->hasFile('image')) {
                 try {
-                    // Delete old image if exists
-                    if ($product->image) {
-                        $this->imageUploadService->deleteImage('products', $product->image);
-                    }
-
                     $productData['image'] = $this->imageUploadService->uploadImage(
                         $request->file('image'),
-                        'products'
+                        'products',
+                        $product->image
                     );
                 } catch (\Exception $e) {
-                    Log::error('Image upload failed: ' . $e->getMessage());
+                    Log::error('Main image upload failed: ' . $e->getMessage());
                     return redirect()->back()
                         ->withInput()
-                        ->withErrors(['image' => 'Failed to upload image: ' . $e->getMessage()]);
+                        ->withErrors(['image' => 'Failed to upload main image: ' . $e->getMessage()]);
                 }
             }
+
+            // Handle gallery images removal
+            $currentGalleryImages = $product->images ?? [];
+            $imagesToRemove = $request->input('remove_gallery_images', []);
+
+            if (!empty($imagesToRemove)) {
+                // Delete files from storage
+                $this->imageUploadService->deleteGalleryImages($imagesToRemove, 'products');
+
+                // Update gallery array
+                $currentGalleryImages = array_values(array_filter($currentGalleryImages, function ($image) use ($imagesToRemove) {
+                    return !in_array($image, $imagesToRemove);
+                }));
+            }
+
+            // Handle new gallery images upload
+            if ($request->hasFile('gallery_images')) {
+                try {
+                    $newGalleryImages = $this->imageUploadService->uploadGalleryImages(
+                        $request->file('gallery_images'),
+                        'products'
+                    );
+
+                    // Merge with existing gallery images
+                    $currentGalleryImages = array_merge($currentGalleryImages, $newGalleryImages);
+                } catch (\Exception $e) {
+                    Log::error('Gallery images upload failed: ' . $e->getMessage());
+                    return redirect()->back()
+                        ->withInput()
+                        ->withErrors(['gallery_images' => 'Failed to upload gallery images: ' . $e->getMessage()]);
+                }
+            }
+
+            $productData['images'] = $currentGalleryImages;
 
             $product->update($productData);
 
@@ -229,10 +273,11 @@ class ProductController extends Controller
      */
     public function destroy(Product $product): RedirectResponse
     {
-        // Delete image if exists
-        if ($product->image) {
-            $this->imageUploadService->deleteImage('products', $product->image);
-        }
+        // Delete all product images (main + gallery)
+        $this->imageUploadService->deleteProductImages(
+            $product->image,
+            $product->images ?? []
+        );
 
         $productName = $product->name;
         $product->delete();

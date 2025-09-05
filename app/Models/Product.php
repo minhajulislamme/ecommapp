@@ -102,4 +102,58 @@ class Product extends Model
     {
         return !is_null($this->sale_price) && $this->sale_price < $this->price;
     }
+
+    /**
+     * Get gallery images array
+     */
+    public function getGalleryImagesAttribute()
+    {
+        return $this->images ?? [];
+    }
+
+    /**
+     * Add image to gallery
+     */
+    public function addGalleryImage(string $imageName): void
+    {
+        $images = $this->images ?? [];
+        $images[] = $imageName;
+        $this->update(['images' => $images]);
+    }
+
+    /**
+     * Remove image from gallery
+     */
+    public function removeGalleryImage(string $imageName): void
+    {
+        $images = $this->images ?? [];
+        $images = array_values(array_filter($images, fn($image) => $image !== $imageName));
+        $this->update(['images' => $images]);
+    }
+
+    /**
+     * Update entire gallery
+     */
+    public function updateGallery(array $images): void
+    {
+        $this->update(['images' => $images]);
+    }
+
+    /**
+     * Get all product images (main + gallery)
+     */
+    public function getAllImagesAttribute()
+    {
+        $allImages = [];
+
+        if ($this->image) {
+            $allImages[] = $this->image;
+        }
+
+        if ($this->images) {
+            $allImages = array_merge($allImages, $this->images);
+        }
+
+        return array_unique($allImages);
+    }
 }

@@ -32,16 +32,56 @@ const form = useForm({
 });
 
 const newOption = ref('');
+const newColorCode = ref('#000000');
 
 const addOption = () => {
-    if (newOption.value.trim() && !form.options.includes(newOption.value.trim())) {
-        form.options.push(newOption.value.trim());
-        newOption.value = '';
+    if (form.type === 'color') {
+        addColorOption();
+    } else {
+        if (newOption.value.trim() && !form.options.includes(newOption.value.trim())) {
+            form.options.push(newOption.value.trim());
+            newOption.value = '';
+        }
+    }
+};
+
+const addColorOption = () => {
+    if (newOption.value.trim()) {
+        // Store color as JSON object with name and code
+        const colorData = JSON.stringify({
+            name: newOption.value.trim(),
+            code: newColorCode.value
+        });
+        
+        if (!form.options.includes(colorData)) {
+            form.options.push(colorData);
+            newOption.value = '';
+            newColorCode.value = '#000000';
+        }
     }
 };
 
 const removeOption = (index: number) => {
     form.options.splice(index, 1);
+};
+
+const getColorFromOption = (option: string) => {
+    try {
+        const colorData = JSON.parse(option);
+        return colorData;
+    } catch {
+        // For backward compatibility with simple string colors
+        return { name: option, code: '#000000' };
+    }
+};
+
+const isValidColor = (option: string) => {
+    try {
+        JSON.parse(option);
+        return true;
+    } catch {
+        return false;
+    }
 };
 
 const submit = () => {
@@ -130,17 +170,38 @@ const submit = () => {
                         <!-- Predefined Options (for text and color types) -->
                         <div v-if="form.type === 'text' || form.type === 'color'" class="space-y-2">
                             <Label>Predefined Options (Optional)</Label>
-                            <p class="text-sm text-gray-500">Add predefined options that users can choose from</p>
+                            <p class="text-sm text-gray-500">
+                                <span v-if="form.type === 'text'">Add predefined text options that users can choose from</span>
+                                <span v-else-if="form.type === 'color'">Add predefined color options with names and color codes</span>
+                            </p>
                             
                             <!-- Add new option -->
                             <div class="flex gap-2">
                                 <Input
                                     v-model="newOption"
                                     type="text"
-                                    placeholder="Add an option..."
+                                    :placeholder="form.type === 'color' ? 'Color name (e.g., Red, Blue)' : 'Add an option...'"
                                     class="flex-1"
                                     @keyup.enter="addOption"
                                 />
+                                
+                                <!-- Color picker for color type -->
+                                <div v-if="form.type === 'color'" class="flex items-center gap-2">
+                                    <input
+                                        v-model="newColorCode"
+                                        type="color"
+                                        class="w-10 h-9 border border-input rounded cursor-pointer"
+                                        title="Select color"
+                                    />
+                                    <Input
+                                        v-model="newColorCode"
+                                        type="text"
+                                        placeholder="#000000"
+                                        class="w-24"
+                                        pattern="^#[0-9A-Fa-f]{6}$"
+                                    />
+                                </div>
+                                
                                 <Button type="button" @click="addOption" size="sm">
                                     <Plus class="h-4 w-4" />
                                 </Button>
@@ -153,7 +214,19 @@ const submit = () => {
                                     :key="index"
                                     class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-md"
                                 >
-                                    <span class="flex-1 text-sm">{{ option }}</span>
+                                    <!-- Color display for color type -->
+                                    <div v-if="form.type === 'color' && isValidColor(option)" class="flex items-center gap-2 flex-1">
+                                        <div 
+                                            class="w-6 h-6 rounded border border-gray-300"
+                                            :style="{ backgroundColor: getColorFromOption(option).code }"
+                                        ></div>
+                                        <span class="text-sm font-medium">{{ getColorFromOption(option).name }}</span>
+                                        <span class="text-xs text-gray-500">{{ getColorFromOption(option).code }}</span>
+                                    </div>
+                                    
+                                    <!-- Text display for text type -->
+                                    <span v-else class="flex-1 text-sm">{{ option }}</span>
+                                    
                                     <Button
                                         type="button"
                                         variant="ghost"

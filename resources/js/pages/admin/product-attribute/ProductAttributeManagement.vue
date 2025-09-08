@@ -156,6 +156,29 @@ const getTypeBadgeClass = (type: string) => {
     };
     return classes[type as keyof typeof classes] || 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
 };
+
+const getColorFromOption = (option: string) => {
+    try {
+        const colorData = JSON.parse(option);
+        return colorData;
+    } catch {
+        // For backward compatibility with simple string colors
+        return { name: option, code: '#000000' };
+    }
+};
+
+const isValidColor = (option: string) => {
+    try {
+        JSON.parse(option);
+        return true;
+    } catch {
+        return false;
+    }
+};
+
+const hasColorOptions = (attribute: ProductAttribute) => {
+    return attribute.type === 'color' && attribute.options && attribute.options.length > 0;
+};
 </script>
 
 <template>
@@ -223,6 +246,7 @@ const getTypeBadgeClass = (type: string) => {
                                 <th class="px-6 py-4 text-left text-sm font-medium text-gray-500 dark:text-gray-400">Attribute</th>
                                 <th class="px-6 py-4 text-left text-sm font-medium text-gray-500 dark:text-gray-400">Type</th>
                                 <th class="px-6 py-4 text-left text-sm font-medium text-gray-500 dark:text-gray-400">Description</th>
+                                <th class="px-6 py-4 text-left text-sm font-medium text-gray-500 dark:text-gray-400">Options</th>
                                 <th class="px-6 py-4 text-left text-sm font-medium text-gray-500 dark:text-gray-400">Required</th>
                                 <th class="px-6 py-4 text-left text-sm font-medium text-gray-500 dark:text-gray-400">Status</th>
                                 <th class="px-6 py-4 text-left text-sm font-medium text-gray-500 dark:text-gray-400">Created</th>
@@ -231,7 +255,7 @@ const getTypeBadgeClass = (type: string) => {
                         </thead>
                         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                             <tr v-if="filteredAttributes.length === 0">
-                                <td colspan="7" class="px-6 py-12 text-center">
+                                <td colspan="8" class="px-6 py-12 text-center">
                                     <div class="flex flex-col items-center gap-2">
                                         <Palette class="h-12 w-12 text-gray-400" />
                                         <h3 class="text-lg font-medium text-gray-900 dark:text-white">No attributes found</h3>
@@ -269,6 +293,40 @@ const getTypeBadgeClass = (type: string) => {
                                     <p class="text-sm text-gray-600 dark:text-gray-300 max-w-xs truncate">
                                         {{ attribute.description || 'No description' }}
                                     </p>
+                                </td>
+                                
+                                <!-- Options -->
+                                <td class="px-6 py-4">
+                                    <div v-if="attribute.options && attribute.options.length > 0" class="flex flex-wrap gap-1 max-w-xs">
+                                        <!-- Color options display -->
+                                        <template v-if="attribute.type === 'color'">
+                                            <div 
+                                                v-for="(option, idx) in attribute.options.slice(0, 3)" 
+                                                :key="idx"
+                                                class="flex items-center gap-1"
+                                            >
+                                                <div 
+                                                    v-if="isValidColor(option)"
+                                                    class="w-4 h-4 rounded border border-gray-300"
+                                                    :style="{ backgroundColor: getColorFromOption(option).code }"
+                                                    :title="getColorFromOption(option).name"
+                                                ></div>
+                                                <span v-else class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">{{ option }}</span>
+                                            </div>
+                                            <span v-if="attribute.options.length > 3" class="text-xs text-gray-500">+{{ attribute.options.length - 3 }} more</span>
+                                        </template>
+                                        
+                                        <!-- Text/other options display -->
+                                        <template v-else>
+                                            <span 
+                                                v-for="(option, idx) in attribute.options.slice(0, 2)" 
+                                                :key="idx"
+                                                class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded"
+                                            >{{ option }}</span>
+                                            <span v-if="attribute.options.length > 2" class="text-xs text-gray-500">+{{ attribute.options.length - 2 }} more</span>
+                                        </template>
+                                    </div>
+                                    <span v-else class="text-sm text-gray-400">No options</span>
                                 </td>
                                 
                                 <!-- Required -->

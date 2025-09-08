@@ -11,7 +11,8 @@ import {
     Home,
     Activity,
     FolderOpen,
-    Tag
+    Tag,
+    Palette
 } from 'lucide-vue-next';
 
 const page = usePage();
@@ -68,6 +69,11 @@ const navigationItems = computed((): NavItem[] => {
                 title: 'Sub-Categories',
                 href: '/admin/subcategories',
                 icon: Tag,
+            },
+            {
+                title: 'Product Attributes',
+                href: '/admin/product-attributes',
+                icon: Palette,
             },
             {
                 title: 'Reports',

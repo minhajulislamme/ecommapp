@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\SubCategoryController;
+use App\Http\Controllers\Admin\ProductAttributeController;
 use App\Http\Controllers\MailNotificationController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -55,6 +56,17 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
 
         // API route for getting subcategories by category
         Route::get('/by-category/{categoryId}', [SubCategoryController::class, 'getByCategory'])->name('by-category');
+    });
+
+    // Product attribute management routes
+    Route::prefix('product-attributes')->name('product-attributes.')->group(function () {
+        Route::get('/', [ProductAttributeController::class, 'index'])->name('index');
+        Route::get('/create', [ProductAttributeController::class, 'create'])->name('create');
+        Route::post('/', [ProductAttributeController::class, 'store'])->name('store');
+        Route::get('/{productAttribute}/edit', [ProductAttributeController::class, 'edit'])->name('edit');
+        Route::put('/{productAttribute}', [ProductAttributeController::class, 'update'])->name('update');
+        Route::patch('/{productAttribute}/toggle-status', [ProductAttributeController::class, 'toggleStatus'])->name('toggle-status');
+        Route::delete('/{productAttribute}', [ProductAttributeController::class, 'destroy'])->name('destroy');
     });
 
     // General mail routes
